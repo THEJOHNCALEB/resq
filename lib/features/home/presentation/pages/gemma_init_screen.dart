@@ -17,6 +17,7 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
   double _progress = 0;
   bool _downloading = false;
   bool _failed = false;
+  bool _checking = true;
   String _error = '';
 
   @override
@@ -37,16 +38,16 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
     if (gemma.modelLoaded) {
       setState(() {
         _progress = 1.0;
-        _status = 'Ready';
+        _checking = false;
       });
-      await Future.delayed(const Duration(milliseconds: 600));
+      await Future.delayed(const Duration(milliseconds: 400));
       if (!mounted) return;
       context.go(AppRouter.home);
       return;
     }
 
     setState(() {
-      _status = 'Model not found';
+      _checking = false;
       _failed = true;
     });
   }
@@ -165,7 +166,22 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (_downloading) ...[
+                  if (_checking) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        minHeight: 4,
+                        backgroundColor: AppColors.primary.withAlpha(20),
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Checking offline intelligence...',
+                      style: theme.textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant),
+                    ),
+                  ],
+                  if (!_checking && _downloading) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(999),
                       child: LinearProgressIndicator(
@@ -178,12 +194,10 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
                     const SizedBox(height: 10),
                     Text(
                       _status,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.onSurfaceVariant,
-                      ),
+                      style: theme.textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant),
                     ),
                   ],
-                  if (_failed && !_downloading) ...[
+                  if (!_checking && _failed && !_downloading) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -227,7 +241,7 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
                       ),
                     ),
                   ],
-                  if (!_failed && !_downloading && _progress < 1) ...[
+                  if (!_checking && !_failed && !_downloading && _progress < 1) ...[
                     Center(
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 16),

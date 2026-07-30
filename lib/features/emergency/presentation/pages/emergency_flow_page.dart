@@ -155,7 +155,7 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
 
   Future<void> _processEmergency() async {
     final description = _descriptionController.text.trim();
-    if (description.isEmpty) return;
+    if (description.isEmpty && _audioPath == null && _capturedImagePath == null) return;
 
     setState(() => _isProcessing = true);
 
@@ -168,6 +168,10 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
     if (_audioPath != null) {
       emergencyNotifier.setAudioPath(_audioPath!);
     }
+
+    final session = ref.read(currentEmergencyProvider)!;
+    final sessionId = await ref.read(emergencyRepositoryProvider).createSession(session);
+    ref.read(currentEmergencyProvider.notifier).setSessionId(sessionId);
 
     final gemma = ref.read(gemmaServiceProvider);
     if (!gemma.modelLoaded) {

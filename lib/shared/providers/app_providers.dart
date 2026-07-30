@@ -132,6 +132,11 @@ class EmergencyNotifier extends StateNotifier<EmergencySession?> {
     );
   }
 
+  void setSessionId(int id) {
+    if (state == null) return;
+    state = state!.copyWith(id: id);
+  }
+
   void setSummary(String summary) {
     if (state == null) return;
     state = state!.copyWith(summary: summary);
@@ -140,7 +145,11 @@ class EmergencyNotifier extends StateNotifier<EmergencySession?> {
   Future<void> completeSession() async {
     if (state == null) return;
     state = state!.copyWith(isCompleted: true);
-    await _ref.read(emergencyRepositoryProvider).createSession(state!);
+    if (state!.id != null) {
+      await _ref.read(emergencyRepositoryProvider).updateSession(state!);
+    } else {
+      await _ref.read(emergencyRepositoryProvider).createSession(state!);
+    }
     state = null;
   }
 

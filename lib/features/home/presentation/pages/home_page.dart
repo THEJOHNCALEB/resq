@@ -44,55 +44,70 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Consumer(
       builder: (context, ref, _) {
         final sessions = ref.watch(sessionHistoryProvider).valueOrNull ?? [];
+        final theme = Theme.of(context);
 
         if (sessions.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(40),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withAlpha(12),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const AppIcon(Icons.history_rounded, size: 32, color: AppColors.primary),
-                  ),
+          return Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: Row(children: [
+                    Text('Care History', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+                Expanded(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Container(width: 64, height: 64, decoration: BoxDecoration(color: AppColors.primary.withAlpha(12), borderRadius: BorderRadius.circular(18)), child: const AppIcon(Icons.history_rounded, size: 32, color: AppColors.primary)),
                   const SizedBox(height: 20),
                   const Text('No past sessions', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
                   const SizedBox(height: 8),
                   Text('Your emergency history will appear here', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 14)),
-                ],
-              ),
+                ]))),
+              ],
             ),
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-          itemCount: sessions.length.clamp(0, 3),
-          itemBuilder: (context, i) {
-            final s = sessions[i];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 10),
-              child: ListTile(
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withAlpha(12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const AppIcon(Icons.medical_services_rounded, size: 20, color: AppColors.primary),
-                ),
-                title: Text(s.emergencyType.isNotEmpty ? s.emergencyType : 'Emergency', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-                subtitle: Text('${s.createdAt.day}/${s.createdAt.month}/${s.createdAt.year}', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
+        return Column(
+          children: [
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Row(children: [
+                Text('Care History', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              ]),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+                itemCount: sessions.length,
+                itemBuilder: (context, i) {
+                  final s = sessions[i];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: InkWell(
+                      onTap: () => context.push(AppRouter.sessionDetail.replaceAll(':sessionId', '${s.id}')),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(children: [
+                          Container(width: 40, height: 40, decoration: BoxDecoration(color: AppColors.primary.withAlpha(12), borderRadius: BorderRadius.circular(10)), child: const AppIcon(Icons.medical_services_rounded, size: 20, color: AppColors.primary)),
+                          const SizedBox(width: 14),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(s.emergencyType.isNotEmpty ? s.emergencyType : 'Emergency', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                            const SizedBox(height: 4),
+                            Text('${s.createdAt.day}/${s.createdAt.month}/${s.createdAt.year}  ·  ${s.emergencyDescription.length > 40 ? '${s.emergencyDescription.substring(0, 40)}...' : s.emergencyDescription}', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
+                          ])),
+                          const Icon(Icons.chevron_right_rounded, color: AppColors.outline, size: 20),
+                        ]),
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
+            ),
+          ],
         );
       },
     );
@@ -104,37 +119,33 @@ class _HomePageState extends ConsumerState<HomePage> {
         final profile = ref.watch(profileProvider).valueOrNull;
         final theme = Theme.of(context);
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+        return Column(
           children: [
-            if (profile != null && profile.isComplete) ...[
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      Container(width: 56, height: 56, decoration: BoxDecoration(color: AppColors.primary.withAlpha(15), borderRadius: BorderRadius.circular(16)), child: const AppIcon(Icons.person_outline_rounded, size: 28, color: AppColors.primary)),
-                      const SizedBox(height: 12),
-                      Text(profile.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 4),
-                      Text('${profile.age} yrs  ·  ${profile.bloodGroup}', style: theme.textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant)),
-                      if (profile.allergies.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Row(children: [
+                Text('Medical Profile', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              ]),
+            ),
+            Expanded(
+              child: profile != null && profile.isComplete
+                  ? ListView(padding: const EdgeInsets.fromLTRB(20, 12, 20, 100), children: [
+                      Card(child: Padding(padding: const EdgeInsets.all(20), child: Column(children: [
+                        Container(width: 56, height: 56, decoration: BoxDecoration(color: AppColors.primary.withAlpha(15), borderRadius: BorderRadius.circular(16)), child: const AppIcon(Icons.person_outline_rounded, size: 28, color: AppColors.primary)),
+                        const SizedBox(height: 12),
+                        Text(profile.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 4),
+                        Text('${profile.age} yrs  ·  ${profile.bloodGroup}', style: theme.textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant)),
+                        if (profile.allergies.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Wrap(spacing: 6, runSpacing: 6, children: profile.allergies.map((a) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: AppColors.warning.withAlpha(15), borderRadius: BorderRadius.circular(8)), child: Text(a, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.warning)))).toList()),
+                        ],
                         const SizedBox(height: 16),
-                        Wrap(spacing: 6, runSpacing: 6, children: profile.allergies.map((a) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: AppColors.warning.withAlpha(15), borderRadius: BorderRadius.circular(8)), child: Text(a, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.warning)))).toList()),
-                      ],
-                      const SizedBox(height: 16),
-                      SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => context.push(AppRouter.profile), style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('View Full Profile'))),
-                    ],
-                  ),
-                ),
-              ),
-            ] else ...[
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+                        SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => context.push(AppRouter.profile), style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('View Full Profile'))),
+                      ]))),
+                    ])
+                  : Center(child: Padding(padding: const EdgeInsets.all(40), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Container(width: 64, height: 64, decoration: BoxDecoration(color: AppColors.primary.withAlpha(12), borderRadius: BorderRadius.circular(18)), child: const AppIcon(Icons.person_outline_rounded, size: 32, color: AppColors.primary)),
                       const SizedBox(height: 20),
                       const Text('No profile yet', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
@@ -142,11 +153,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       Text('Add your medical information for better emergency guidance', textAlign: TextAlign.center, style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 14)),
                       const SizedBox(height: 20),
                       FilledButton.icon(onPressed: () => context.push(AppRouter.editProfile), icon: const AppIcon(Icons.add_rounded, size: 18), label: const Text('Create Profile'), style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)))),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+                    ]))),
+            ),
           ],
         );
       },
@@ -159,38 +167,13 @@ class _HomePageState extends ConsumerState<HomePage> {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(8),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 16, offset: const Offset(0, 4))],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _NavItem(
-            icon: Icons.person_outline_rounded,
-            label: 'Profile',
-            selected: _tab == 2,
-            onTap: () => setState(() => _tab = 2),
-          ),
-          _NavItem(
-            icon: Icons.home_rounded,
-            label: 'Home',
-            selected: _tab == 0,
-            isCenter: true,
-            onTap: () => setState(() => _tab = 0),
-          ),
-          _NavItem(
-            icon: Icons.history_rounded,
-            label: 'History',
-            selected: _tab == 1,
-            onTap: () => setState(() => _tab = 1),
-          ),
-        ],
-      ),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+        _NavItem(icon: Icons.person_outline_rounded, label: 'Profile', selected: _tab == 2, onTap: () => setState(() => _tab = 2)),
+        _NavItem(icon: Icons.home_rounded, label: 'Home', selected: _tab == 0, isCenter: true, onTap: () => setState(() => _tab = 0)),
+        _NavItem(icon: Icons.history_rounded, label: 'History', selected: _tab == 1, onTap: () => setState(() => _tab = 1)),
+      ]),
     );
   }
 }
@@ -202,53 +185,24 @@ class _NavItem extends StatelessWidget {
   final bool isCenter;
   final VoidCallback onTap;
 
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    this.isCenter = false,
-    required this.onTap,
-  });
+  const _NavItem({required this.icon, required this.label, required this.selected, this.isCenter = false, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = selected ? AppColors.primary : AppColors.outline;
-
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: isCenter ? 24 : 20,
-          vertical: 12,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (selected)
-              Container(
-                width: 28,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              )
-            else
-              const SizedBox(height: 3),
-            const SizedBox(height: 6),
-            AppIcon(icon, size: 22, color: color),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: color,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ),
-          ],
-        ),
+        padding: EdgeInsets.symmetric(horizontal: isCenter ? 24 : 20, vertical: 12),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          if (selected) Container(width: 28, height: 3, decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(2))) else const SizedBox(height: 3),
+          const SizedBox(height: 6),
+          AppIcon(icon, size: 22, color: color),
+          const SizedBox(height: 4),
+          Text(label, style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+        ]),
       ),
     );
   }
