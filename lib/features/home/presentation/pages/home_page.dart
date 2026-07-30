@@ -5,6 +5,7 @@ import '../../../../shared/widgets/app_icon.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../shared/providers/app_providers.dart';
+import '../../../../core/privacy_monitor.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -165,6 +166,34 @@ class _HomePageState extends ConsumerState<HomePage>
                   ),
                 ],
               ),
+            ),
+            ListenableBuilder(
+              listenable: PrivacyMonitor.instance,
+              builder: (context, _) {
+                final count = PrivacyMonitor.instance.count;
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          count == 0 ? Icons.shield_rounded : Icons.warning_rounded,
+                          size: 14,
+                          color: count == 0 ? AppColors.safe : AppColors.error,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          count == 0 ? '0 network requests' : '$count request${count > 1 ? 's' : ''}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: count == 0 ? AppColors.safe : AppColors.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
             const Spacer(flex: 1),
           ],

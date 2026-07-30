@@ -89,3 +89,10 @@ gemma_model/
 # Flutter generated
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# Secrets - never commit tokens
+config.json
+
+# Font assets (bundled locally, not from google_fonts)
+assets/fonts/Inter*.ttf
+!assets/fonts/OFL.txt

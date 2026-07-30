@@ -13,9 +13,12 @@ class GemmaInitScreen extends ConsumerStatefulWidget {
 }
 
 class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
-  String _status = 'Preparing...';
+  String _status = '';
   double _progress = 0;
-  bool _showRetry = false;
+  bool _downloading = false;
+  bool _failed = false;
+  String _error = '';
+  DateTime? _downloadStart;
 
   @override
   void initState() {
@@ -26,10 +29,8 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
   Future<void> _init() async {
     final gemma = ref.read(gemmaServiceProvider);
 
-    setState(() {
-      _status = 'Checking for AI model...';
-      _progress = 0.15;
-    });
+    setState(() => _status = 'Checking for AI model...');
+    await Future.delayed(const Duration(milliseconds: 400));
 
     await gemma.initialize();
 
@@ -37,52 +38,79 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
 
     if (gemma.modelLoaded) {
       setState(() {
-        _status = 'AI ready';
         _progress = 1.0;
+        _status = 'AI ready';
       });
-    } else {
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+      context.go(AppRouter.home);
+      return;
+    }
+
+    setState(() {
+      _status = 'Gemma 4 model not found';
+      _failed = true;
+    });
+  }
+
+  Future<void> _download() async {
+    final gemma = ref.read(gemmaServiceProvider);
+
+    setState(() {
+      _downloading = true;
+      _failed = false;
+      _progress = 0;
+      _status = 'Connecting...';
+      _downloadStart = DateTime.now();
+    });
+
+    final error = await gemma.downloadModel(
+      onProgress: (p) {
+        if (!mounted) return;
+        final elapsed = DateTime.now().difference(_downloadStart!).inSeconds;
+        final speed = elapsed > 0 && p > 0
+            ? '${((2.4 * p) / elapsed * 60).toStringAsFixed(0)} MB/min'
+            : '';
+
+        setState(() {
+          _progress = p;
+          _status = speed.isNotEmpty
+              ? '$speed  -  ${(p * 100).toStringAsFixed(0)}%'
+              : 'Downloading... ${(p * 100).toStringAsFixed(0)}%';
+        });
+      },
+    );
+
+    if (!mounted) return;
+
+    if (error == null) {
       setState(() {
-        _status = 'Downloading AI model...';
-        _progress = 0.2;
+        _progress = 1.0;
+        _status = 'Installing model...';
       });
 
-      final error = await gemma.downloadModel(
-        onProgress: (p) {
-          if (mounted) {
-            setState(() {
-              _progress = 0.2 + p * 0.7;
-              _status = 'Downloading AI model... ${(p * 100).round()}%';
-            });
-          }
-        },
-      );
+      await gemma.initialize();
 
       if (!mounted) return;
 
-      if (error == null) {
-        setState(() {
-          _status = 'Download complete. Loading...';
-          _progress = 0.95;
-        });
-        await gemma.initialize();
-        setState(() {
-          _status = 'AI ready';
-          _progress = 1.0;
-        });
+      if (gemma.modelLoaded) {
+        setState(() => _status = 'AI ready');
+        await Future.delayed(const Duration(milliseconds: 600));
+        if (!mounted) return;
+        context.go(AppRouter.home);
       } else {
         setState(() {
-          _status = 'Could not download model';
-          _showRetry = true;
-          _progress = 1.0;
+          _failed = true;
+          _downloading = false;
+          _error = 'Model installed but failed to load. Try restarting.';
         });
       }
-    }
-
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-
-    if (gemma.modelLoaded) {
-      context.go(AppRouter.home);
+    } else {
+      setState(() {
+        _failed = true;
+        _downloading = false;
+        _error = error;
+      });
     }
   }
 
@@ -93,70 +121,158 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'ResQ',
-                  style: theme.textTheme.displayLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Spacer(flex: 2),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withAlpha(20),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(
+                    Icons.download_rounded,
+                    size: 48,
                     color: AppColors.primary,
-                    letterSpacing: -2,
-                    fontSize: 72,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Center(
+                child: Text(
+                  'Gemma 4 E2B',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: Text(
+                  'ResQ needs the AI model to analyse emergencies.\n'
+                  'It runs entirely on this device.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.divider),
+                  ),
+                  child: const Text(
+                    '~2.4 GB  -  Apache 2.0',
+                    style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                  ),
+                ),
+              ),
+              const Spacer(flex: 2),
+              if (_downloading) ...[
+                Text(
+                  _status,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  'Offline Emergency Intelligence',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                    fontWeight: FontWeight.w400,
-                    letterSpacing: 1,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: _progress > 0 ? _progress : null,
+                    minHeight: 8,
+                    backgroundColor: AppColors.primary.withAlpha(20),
+                    color: AppColors.primary,
                   ),
                 ),
-                const SizedBox(height: 48),
-                SizedBox(
-                  width: 200,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: LinearProgressIndicator(
-                      value: _progress,
-                      minHeight: 4,
-                      backgroundColor: AppColors.primary.withAlpha(20),
-                      color: AppColors.primary,
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    '${(_progress * 100).toStringAsFixed(1)}%',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  _status,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.onSurfaceVariant,
+              ],
+              if (_failed && !_downloading) ...[
+                if (_error.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withAlpha(15),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.error.withAlpha(40)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, size: 18, color: AppColors.error),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _error,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.error,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 16),
+              ],
+              if (!_downloading)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _failed ? _download : _download,
+                    icon: Icon(
+                      _failed ? Icons.refresh_rounded : Icons.download_rounded,
+                      size: 18,
+                    ),
+                    label: Text(_failed ? 'Retry download' : 'Download model'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
                   ),
                 ),
-                if (_showRetry) ...[
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: () {
-                      setState(() {
-                        _showRetry = false;
-                        _progress = 0;
-                      });
-                      _init();
-                    },
-                    child: const Text('Retry'),
+              const SizedBox(height: 16),
+              Center(
+                child: Text(
+                  'One-time download from Hugging Face.\nAfter this, everything stays on your device.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
                   ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () => context.go(AppRouter.home),
-                    child: const Text('Continue offline'),
+                ),
+              ),
+              if (_failed)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Center(
+                    child: TextButton(
+                      onPressed: () => context.go(AppRouter.home),
+                      child: const Text('Continue without AI'),
+                    ),
                   ),
-                ],
-              ],
-            ),
+                ),
+              const Spacer(),
+            ],
           ),
         ),
       ),

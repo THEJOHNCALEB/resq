@@ -109,9 +109,13 @@ The same pipeline runs in the [Kaggle notebook](https://www.kaggle.com/code/thej
 
 ---
 
-## Privacy
+## Privacy: Proof, Not a Promise
 
-ResQ makes zero network requests after model download. There is no backend. No Firebase. No cloud APIs. No authentication. No user accounts. The model runs on-device. Medical profiles are encrypted locally. Emergency history stays on the phone.
+ResQ makes zero network requests after model download. This is not a claim — it is **measured**.
+
+A `PrivacyMonitor` singleton intercepts all HTTP traffic via `HttpOverrides` on native and `fetch`/`XMLHttpRequest` patching on web. The count is displayed live in the app as "0 network requests." A judge can open Android devtools and verify zero traffic.
+
+There is no backend. No Firebase. No cloud APIs. No authentication. No user accounts. The model runs on-device. Medical profiles are encrypted locally via `flutter_secure_storage`. Emergency history stays in local SQLite.
 
 ---
 
@@ -127,7 +131,7 @@ The AI is invisible by design. Users interact with structured emergency cards, n
 
 ### Download APK
 
-Get the latest release APK from the [Releases](https://github.com/thejohncaleb/resq/releases) page. Each tagged version (`v1.0.0`, etc.) triggers a GitHub Actions build that produces a signed APK.
+Get the latest release APK from the [Releases](https://github.com/thejohncaleb/resq/releases) page.
 
 ### Build from Source
 
@@ -135,12 +139,18 @@ Get the latest release APK from the [Releases](https://github.com/thejohncaleb/r
 - Flutter 3.44+ (Dart 3.12+)
 - Android device or emulator (API 26+, 4GB+ RAM)
 - About 3GB free storage for the model
+- A Hugging Face [read token](https://huggingface.co/settings/tokens) (free)
 
 ```bash
 git clone https://github.com/thejohncaleb/resq.git
 cd resq
+
+# Create your HuggingFace token config
+cp config.example.json config.json
+# Edit config.json and paste your HF token
+
 flutter pub get
-flutter run
+flutter run --dart-define-from-file=config.json
 ```
 
 ### Model Setup
@@ -150,8 +160,6 @@ The Gemma 4 E2B model downloads automatically on first launch. If automatic down
 ```bash
 adb push gemma-4-E2B-it.litertlm /sdcard/Android/data/com.resq.resq/files/
 ```
-
-Then restart the app.
 
 ---
 
