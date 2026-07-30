@@ -56,6 +56,7 @@ class LocationService extends ChangeNotifier {
 
       return _currentPosition;
     } catch (e) {
+      debugPrint('[ResQ] LocationService error: $e');
       _error = e.toString();
       _isLoading = false;
       notifyListeners();

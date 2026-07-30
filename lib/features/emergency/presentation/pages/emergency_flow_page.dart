@@ -187,7 +187,8 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
     if (response.isNotEmpty) {
       try {
         emergencyNotifier.setAiAssessment(response);
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[ResQ] Failed to parse emergency analysis: $e');
         emergencyNotifier.setEmergencyType('Emergency');
         emergencyNotifier.setAiAssessment(description);
       }

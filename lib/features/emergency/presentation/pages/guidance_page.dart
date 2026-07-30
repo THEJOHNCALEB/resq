@@ -67,7 +67,8 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
         notifier.setThingsToAvoid(_avoid);
         notifier.setMonitor(_monitor);
         notifier.setWhenToSeekCare(_seekCare);
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[ResQ] Guidance JSON parse error: $e');
         _setGeneric();
       }
     } else {

@@ -41,6 +41,7 @@ class GemmaService extends ChangeNotifier {
 
       _state = GemmaState.ready;
     } catch (e) {
+      debugPrint('[ResQ] GemmaService init error: $e');
       _state = GemmaState.error;
       _error = e.toString();
     }
@@ -51,8 +52,9 @@ class GemmaService extends ChangeNotifier {
     try {
       await FlutterGemma.getActiveModel(maxTokens: 1);
       return true;
-    } catch (_) {}
-
+    } catch (e) {
+      debugPrint('[ResQ] hasActiveModel check: $e');
+    }
     final paths = <String>[];
     final appDir = await getApplicationDocumentsDirectory();
     paths.add('${appDir.path}/$_modelName');
@@ -61,7 +63,7 @@ class GemmaService extends ChangeNotifier {
       try {
         final extDir = await getExternalStorageDirectory();
         if (extDir != null) paths.add('${extDir.path}/$_modelName');
-      } catch (_) {}
+      } catch (e) { debugPrint('[ResQ] Silent error: $e'); }
     }
 
     for (final p in paths) {
@@ -72,7 +74,7 @@ class GemmaService extends ChangeNotifier {
             fileType: ModelFileType.litertlm,
           ).fromFile(p).install();
           return true;
-        } catch (_) {}
+        } catch (e) { debugPrint('[ResQ] Silent error: $e'); }
       }
     }
 
@@ -122,6 +124,7 @@ class GemmaService extends ChangeNotifier {
 
       return null;
     } catch (e) {
+      debugPrint('[ResQ] Error: $e');
       return e.toString();
     }
   }
