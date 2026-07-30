@@ -30,6 +30,10 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>ResQ uses the local network for on-device AI model inference.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>ResQ uses the camera to capture images of emergency situations for AI analysis.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>ResQ uses the microphone to record your description of the emergency.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
