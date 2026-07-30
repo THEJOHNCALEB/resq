@@ -1,6 +1,6 @@
 # ResQ: Offline Emergency Intelligence with Gemma 4
 
-**Subtitle:** On-device emergency companion that analyses injuries using Gemma 4 E2B — no internet, no cloud, no accounts.
+**Subtitle:** On-device emergency companion that analyses situations using Gemma 4 E2B — no internet, no cloud, no accounts.
 
 **Team:** THEJOHNCALEB
 **Track:** AI for Social Impact / Edge and Offline AI
