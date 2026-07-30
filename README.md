@@ -125,13 +125,16 @@ The AI is invisible by design. Users interact with structured emergency cards, n
 
 ## Setup
 
-### Prerequisites
+### Download APK
 
+Get the latest release APK from the [Releases](https://github.com/thejohncaleb/resq/releases) page. Each tagged version (`v1.0.0`, etc.) triggers a GitHub Actions build that produces a signed APK.
+
+### Build from Source
+
+**Prerequisites:**
 - Flutter 3.44+ (Dart 3.12+)
 - Android device or emulator (API 26+, 4GB+ RAM)
 - About 3GB free storage for the model
-
-### Clone and Run
 
 ```bash
 git clone https://github.com/thejohncaleb/resq.git
