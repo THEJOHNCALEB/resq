@@ -193,7 +193,7 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
     setState(() => _isProcessing = false);
 
     if (mounted) {
-      context.push(AppRouter.guidance);
+      context.go(AppRouter.guidance);
     }
   }
 
@@ -257,10 +257,6 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
       );
     }
 
-    if (_isProcessing) {
-      return _buildProcessingScreen(theme);
-    }
-
     switch (_currentStep) {
       case 0:
         return _buildCameraStep(size);
@@ -269,65 +265,6 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
       default:
         return const SizedBox.shrink();
     }
-  }
-
-  Widget _buildProcessingScreen(ThemeData theme) {
-    return Container(
-      color: AppColors.background,
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(
-                width: 60,
-                height: 60,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 28),
-              Text(
-                'Processing your emergency',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Analysing your description and image\nto prepare guidance.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 36),
-              _ProcessingStep(
-                index: 1,
-                label: 'Analysing your description',
-                isComplete: true,
-              ),
-              const SizedBox(height: 12),
-              _ProcessingStep(
-                index: 2,
-                label: 'Evaluating visible findings',
-                isComplete: false,
-              ),
-              const SizedBox(height: 12),
-              _ProcessingStep(
-                index: 3,
-                label: 'Generating structured guidance',
-                isComplete: false,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _buildCameraStep(Size size) {
@@ -484,7 +421,7 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
           IconButton(
             onPressed: _pickFromGallery,
             icon: AppIcon(
-              Icons.camera_alt,
+              Icons.photo_library_outlined,
               color: Colors.white70,
               size: 28,
             ),
@@ -525,12 +462,13 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
         mainAxisSize: MainAxisSize.min,
         children: [
           CalmButton(
-            label: 'Continue',
+            label: _isProcessing ? 'Processing...' : 'Continue',
             icon: Icons.send_rounded,
             isPrimary: true,
             isFullWidth: true,
             height: 52,
-            onPressed: _processEmergency,
+            isLoading: _isProcessing,
+            onPressed: _isProcessing ? null : _processEmergency,
           ),
           const SizedBox(height: 8),
           CalmButton(
@@ -602,96 +540,6 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ProcessingStep extends StatefulWidget {
-  final int index;
-  final String label;
-  final bool isComplete;
-
-  const _ProcessingStep({
-    required this.index,
-    required this.label,
-    required this.isComplete,
-  });
-
-  @override
-  State<_ProcessingStep> createState() => _ProcessingStepState();
-}
-
-class _ProcessingStepState extends State<_ProcessingStep>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return FadeTransition(
-      opacity: _animation,
-      child: Row(
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: widget.isComplete
-                  ? AppColors.primary
-                  : AppColors.primary.withAlpha(20),
-              border: Border.all(
-                color: widget.isComplete
-                    ? AppColors.primary
-                    : AppColors.outlineVariant,
-                width: 1.5,
-              ),
-            ),
-            child: widget.isComplete
-                ? AppIcon(Icons.check, size: 16, color: Colors.white)
-                : Center(
-                    child: Text(
-                      '${widget.index}',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.outline,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-          ),
-          const SizedBox(width: 14),
-          Text(
-            widget.label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: widget.isComplete
-                  ? AppColors.onSurface
-                  : AppColors.onSurfaceVariant,
-              fontWeight: widget.isComplete
-                  ? FontWeight.w500
-                  : FontWeight.normal,
-            ),
-          ),
-        ],
       ),
     );
   }
