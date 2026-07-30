@@ -77,13 +77,16 @@ Every prompt is structured to force JSON output — never conversational text. T
 
 ```
 lib/
-+-- main.dart                 FlutterGemma.initialize + LiteRtLmEngine
++-- main.dart                 FlutterGemma.initialize + LiteRtLmEngine + PrivacyMonitor
 +-- app.dart                  MaterialApp + router config
 +-- core/
+|   +-- privacy_monitor.dart  Live HTTP request counter
+|   +-- privacy_guard_io.dart  Native HttpOverrides interceptor
+|   +-- privacy_guard_web.dart Web fetch/XHR patching
 |   +-- theme/                "Calm Medical" design tokens
 |   +-- routing/              GoRouter declarative navigation
 +-- features/
-|   +-- home/                 Home screen + emergency button
+|   +-- home/                 Home screen + emergency button + download screen
 |   +-- emergency/            Camera, voice, flashcards, AI guidance
 |   +-- medical_profile/      Encrypted local profile (flutter_secure_storage)
 |   +-- medical_summary/      Professional medical reports
@@ -106,6 +109,19 @@ Medical Summary    → Professional healthcare narrative
 ```
 
 The same pipeline runs in the [Kaggle notebook](https://www.kaggle.com/code/thejohncaleb/resq-offline-emergency-intelligence) for verification.
+
+### Tech Stack
+
+| Layer | Tech |
+|---|---|
+| AI Model | Gemma 4 E2B (multimodal, 2.4B params) |
+| AI Runtime | flutter_gemma 1.3.0 + flutter_gemma_litertlm (LiteRT-LM) |
+| Framework | Flutter 3.44 / Dart 3.12 |
+| State | Riverpod |
+| Routing | GoRouter |
+| Database | SQLite (sqflite) |
+| Security | flutter_secure_storage (encrypted profiles) |
+| UI | Material 3, HugeIcons, Inter font |
 
 ---
 
@@ -172,13 +188,15 @@ adb push gemma-4-E2B-it.litertlm /sdcard/Android/data/com.resq.resq/files/
 # Use Finder/iTunes File Sharing to copy the model into the app's documents
 ```
 
-### Model Setup
+---
 
-The Gemma 4 E2B model downloads automatically on first launch. If automatic download fails:
+## Tests
 
 ```bash
-adb push gemma-4-E2B-it.litertlm /sdcard/Android/data/com.resq.resq/files/
+flutter test
 ```
+
+6 pipeline tests cover the deterministic side of the app: emergency session serialization, medical profile encryption, and JSON roundtrip integrity. The model is never needed for tests — all money math and data handling is verified independently.
 
 ---
 
