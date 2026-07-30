@@ -1,187 +1,111 @@
-# ResQ — Offline Emergency Intelligence
+<p align="center">
+  <img src="assets/images/resq_overlay.png" alt="ResQ — Offline Emergency Intelligence" width="100%" />
+</p>
 
-**An on-device emergency companion powered by Gemma 4. No internet. No cloud. No accounts.**
+<h1 align="center">ResQ</h1>
 
-Built for **Build with Gemma: AI for Africa Hackathon — FUTMinna 2026**
+<p align="center">
+  <strong>Emergency intelligence that works anywhere. No internet. No cloud. No accounts.</strong>
+</p>
+
+<p align="center">
+  <a href="https://www.kaggle.com/code/thejohncaleb/resq-offline-emergency-intelligence"><img src="https://img.shields.io/badge/Build%20with%20Gemma-FUTMinna%202026-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Build with Gemma" /></a>
+  <img src="https://img.shields.io/badge/Track-AI%20for%20Social%20Impact-1B5E5C?style=for-the-badge" alt="Track" />
+  <img src="https://img.shields.io/badge/Flutter-3.44+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
+  <img src="https://img.shields.io/badge/License-Apache%202.0-green?style=for-the-badge" alt="License" />
+</p>
 
 ---
 
-## What is ResQ?
+ResQ is an **on-device emergency intelligence companion** built for the moments between an incident and professional medical care — when there is no internet, no doctor, and no one to tell you what to do. It uses **Gemma 4 E2B — running entirely on your device** — to analyse emergency situations through camera, voice, and text, then provides calm, structured guidance in five scannable cards.
 
-ResQ is an on-device emergency intelligence companion that runs entirely on your phone. It uses **Gemma 4 E2B** to analyse emergency situations — combining camera images, voice descriptions, and text — then provides calm, structured guidance when you need it most. Everything happens on the device. Nothing leaves your phone.
-
-It is not a chatbot. It is not a symptom checker. It is an emergency tool designed for the moments between an incident and professional care — when there is no internet, no doctor, and no one to tell you what to do.
+**Zero network requests after model download.** A live privacy counter proves it.
 
 ---
 
 ## The Problem
 
-It is 9 PM at FUTMinna. A student walks back from night class at Gidan Kwano campus. The path to the hostels passes through bushland. A snake bites his ankle. The university clinic is closed. The nearest hospital is 45 minutes away.
+It is 9 PM at FUTMinna. A student walks back from night class at Gidan Kwano campus. A snake bites his ankle. The university clinic is closed. The nearest hospital is 45 minutes away. His phone has no signal.
 
-In rural Nigeria, emergency medical care is often hours away. A farmer bitten by a snake. A mother whose child has a severe allergic reaction in a village with no clinic. A student who burns themselves cooking in a hostel with no first aid. In these critical minutes, panic leads to harmful actions — tourniquets on snake bites, butter on burns, moving fracture victims — that cause permanent harm.
+In rural Nigeria, this is everyday reality. The minutes between an incident and professional care are when permanent harm happens — tourniquets on snake bites, butter on burns, moving fracture victims incorrectly.
 
-Existing solutions fail because they need internet, which is the first thing to go in these situations. ChatGPT cannot help when there is no signal.
-
----
-
-## Why Gemma On-Device?
-
-The decisive question for any emergency AI: why would someone use this instead of calling for help?
-
-Because help is often unreachable. The nearest clinic might be two hours away. Mobile data might be expensive or unavailable. In these moments, the phone is the only resource available. Processing on-device is not a feature — it is the entire reason the app exists.
-
-We chose **Gemma 4 E2B** because:
-
-- **It is multimodal.** Camera images of injuries and voice descriptions are analysed together. The vision encoder processes what it sees (burns, swelling, bite marks). The language model reasons about what is described. The integrated assessment is impossible with text-only models.
-- **It fits on a phone.** At 2.4 billion effective parameters, the LiteRT-LM model runs on mid-range Android devices with 4GB+ RAM.
-- **It reasons, not scripts.** Follow-up questions are dynamically reasoned by the model — snake bites generate different questions than burns. No hardcoded decision trees.
+Existing solutions need internet, which is the first thing to go. ChatGPT cannot help when there is no signal.
 
 ---
 
-## Architecture: What the Model Owns vs What Code Owns
+## Key Features
 
-The core design decision: **structured UI owns the experience; Gemma owns the understanding.**
-
-What the Flutter app does (never the model):
-- Render five calm guidance cards (Assessment, Actions, Avoid, Monitor, Seek Care)
-- Store encrypted medical profiles and emergency history via SQLite
-- Calculate GPS proximity to nearby medical facilities from a local JSON database
-- Record audio and capture camera images
-- Generate formatted medical summaries for healthcare providers
-
-What Gemma does (only the model can):
-- Analyse emergency images and voice transcriptions together
-- Determine emergency type and severity from multimodal input
-- Generate structured JSON guidance (assessment, actions to take, things to avoid, signs to monitor, when to seek professional care)
-- Write professional medical summaries for healthcare providers
-- Dynamically reason about what follow-up questions to ask
-
-This split means the guidance format is always clean and structured, regardless of the model's output. The UI is never raw AI text.
-
----
-
-## Technical Implementation
-
-### On-Device Inference
-
-```
-flutter_gemma (v1.3.0)          ← Core plugin API
-    └── flutter_gemma_litertlm   ← LiteRT-LM engine backend
-```
-
-The app initialises the LiteRT-LM engine at startup via `FlutterGemma.initialize(inferenceEngines: [LiteRtLmEngine()])`. The Gemma 4 E2B model (~2.4GB) downloads on first launch from Hugging Face using Dart's `dart:io` HttpClient and installs via `FlutterGemma.installModel().fromFile()`.
-
-Every prompt is structured to force JSON output — never conversational text. The five guidance sections are populated by parsing Gemma's JSON response, not by displaying raw model output.
-
-### Project Structure
-
-```
-lib/
-+-- main.dart                 FlutterGemma.initialize + LiteRtLmEngine + PrivacyMonitor
-+-- app.dart                  MaterialApp + router config
-+-- core/
-|   +-- privacy_monitor.dart  Live HTTP request counter
-|   +-- privacy_guard_io.dart  Native HttpOverrides interceptor
-|   +-- privacy_guard_web.dart Web fetch/XHR patching
-|   +-- theme/                "Calm Medical" design tokens
-|   +-- routing/              GoRouter declarative navigation
-+-- features/
-|   +-- home/                 Home screen + emergency button + download screen
-|   +-- emergency/            Camera, voice, flashcards, AI guidance
-|   +-- medical_profile/      Encrypted local profile (flutter_secure_storage)
-|   +-- medical_summary/      Professional medical reports
-|   +-- continue_to_care/     Facilities, contacts, report sharing
-|   +-- care_history/         Past session timeline and detail
-+-- shared/
-    +-- services/             GemmaService, DatabaseService, LocationService
-    +-- providers/            Riverpod dependency injection
-    +-- widgets/              CalmButton, GuidanceCard, AppIcon (HugeIcons)
-```
-
-### The Prompt Pipeline
-
-Five prompt templates force Gemma to produce structured JSON:
-
-```
-Emergency Analysis → {"type", "severity", "context", "nextQuestion"}
-Guidance Generation → {"assessment", "actions", "avoid", "monitor", "seekCare"}
-Medical Summary    → Professional healthcare narrative
-```
-
-### Tech Stack
-
-| Layer | Tech |
+| Feature | Description |
 |---|---|
-| AI Model | Gemma 4 E2B (multimodal, 2.4B params) |
-| AI Runtime | flutter_gemma 1.3.0 + flutter_gemma_litertlm (LiteRT-LM) |
-| Framework | Flutter 3.44 / Dart 3.12 |
-| State | Riverpod |
-| Routing | GoRouter |
-| Database | SQLite (sqflite) |
-| Security | flutter_secure_storage (encrypted profiles) |
-| UI | Material 3, HugeIcons, Inter font |
+| **Multimodal Emergency Analysis** | Camera captures injury photos; voice records your description. Gemma 4's vision encoder and language model analyse both together. |
+| **Structured Guidance** | Five calm, scannable cards: Assessment, Actions, Avoid, Monitor, Seek Care. Never raw AI text. |
+| **Medical Summaries** | Professional reports formatted for healthcare providers — timeline, symptoms, findings, actions taken. |
+| **Complete Privacy** | All processing is on-device. A live network monitor proves zero outbound requests. Encrypted medical profiles. |
+| **Offline Facilities** | Local JSON database of medical facilities sorted by GPS proximity. Works without internet. |
+| **Care History** | Every emergency session saved locally with full timeline, images, and generated reports. |
+| **Auto Model Download** | Gemma 4 E2B (~2.4GB) downloads on first launch with progress tracking and comforting messages. |
 
 ---
 
-## Privacy: Proof, Not a Promise
+## Tech Stack
 
-ResQ makes zero network requests after model download. This is not a claim — it is **measured**.
-
-A `PrivacyMonitor` singleton intercepts all HTTP traffic via `HttpOverrides` on native and `fetch`/`XMLHttpRequest` patching on web. The count is displayed live in the app as "0 network requests." A judge can open Android devtools and verify zero traffic.
-
-There is no backend. No Firebase. No cloud APIs. No authentication. No user accounts. The model runs on-device. Medical profiles are encrypted locally via `flutter_secure_storage`. Emergency history stays in local SQLite.
-
----
-
-## The Design
-
-The design language is built around calmness under pressure. Muted teal palette. Red reserved exclusively for medical warnings. Large typography. Generous whitespace. One instruction per line. No unnecessary animations. The guidance is presented as swipeable flashcards — never a chat interface.
-
-The AI is invisible by design. Users interact with structured emergency cards, not a chatbot.
+| Layer | Technology |
+|---|---|
+| **Framework** | Flutter 3.44+ (Android + iOS) |
+| **On-Device Model** | Gemma 4 E2B via `flutter_gemma` 1.3.0 + `flutter_gemma_litertlm` (LiteRT-LM engine) |
+| **State Management** | Riverpod |
+| **Routing** | GoRouter |
+| **Local Database** | SQLite (sqflite) |
+| **Encryption** | flutter_secure_storage |
+| **Typography** | Bundled Inter font. No runtime fetches. |
+| **Icons** | HugeIcons |
 
 ---
 
-## Setup
+## Architecture
 
-### Download APK
+> **The design point:** structured UI owns the experience; Gemma owns the understanding.
 
-Get the latest release APK from the [Releases](https://github.com/thejohncaleb/resq/releases) page. Each tagged version triggers a GitHub Actions build.
+```mermaid
+flowchart TD
+    A["📸 Camera + 🎤 Voice\n(multimodal input)"] --> B["🧠 Gemma 4 E2B\n(on-device · LiteRT-LM)"]
+    B --> C["📋 Structured Guidance\n(5 Flashcards)"]
+    B --> D["📄 Medical Summary\n(Healthcare Report)"]
+    C --> E["🏥 Continue To Care\n(Facilities · Contacts · Share)"]
+    D --> E
+    E --> F["🗄️ Care History\n(SQLite · Encrypted)"]
+    F -.->|past sessions| B
 
-### Build from Source
+    style A fill:#1A1A2E,stroke:#1B5E5C,color:#1B5E5C
+    style B fill:#1A1510,stroke:#C62828,color:#C62828
+    style C fill:#1E2640,stroke:#2E7D32,color:#F3EFE6
+    style D fill:#1E2640,stroke:#1B5E5C,color:#F3EFE6
+    style E fill:#1E2640,stroke:#4A6361,color:#F3EFE6
+    style F fill:#1E2640,stroke:#232C44,color:#8A8F9C
+```
 
-**Prerequisites:**
-- Flutter 3.44+ (Dart 3.12+)
-- Android (API 26+) or iOS (16.0+) device
-- 4GB+ RAM, ~3GB free storage
+- **Deterministic code** owns: guidance card rendering, medical summary formatting, GPS proximity calculations, encrypted profile storage, local facilities database.
+- **Gemma** does what only a model can: analyse images and voice together, determine emergency type and severity, generate structured JSON guidance, write professional medical summaries.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Flutter 3.44+
+- Android device with 4GB+ RAM (for on-device inference)
+- iOS 16.0+ device
 - A free [Hugging Face read token](https://huggingface.co/settings/tokens)
 
-```bash
-git clone https://github.com/thejohncaleb/resq.git
-cd resq
+### 1. Get the model
 
-cp config.example.json config.json
-# Edit config.json with your HF token
+The app **downloads the model automatically** on first launch — no manual setup needed. It fetches Gemma 4 E2B (~2.4GB) from Hugging Face with a progress bar and comforting messages.
 
-flutter pub get
+<details>
+<summary>Manual setup (optional — for developers)</summary>
 
-# Option 1: VS Code (recommended) — just press F5
-# Launch config already included in .vscode/launch.json
-
-# Option 2: Terminal
-flutter run --dart-define-from-file=config.json
-```
-
-### GitHub Actions / CI
-
-For the release workflow to build with model support, add your HuggingFace token as a GitHub Secret:
-
-1. Go to your repo → Settings → Secrets and variables → Actions
-2. Add `HUGGINGFACE_TOKEN` with your HF read token
-3. Tagged pushes (`v1.0.0`) will automatically build signed APKs
-
-### Model Setup
-
-The Gemma 4 E2B model downloads automatically on first launch (~2.4GB). If automatic download fails:
+Download from [litert-community/gemma-4-E2B-it-litert-lm](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm) (ungated, Apache 2.0):
 
 ```bash
 # Android
@@ -191,35 +115,63 @@ adb push gemma-4-E2B-it.litertlm /sdcard/Android/data/com.resq.resq/files/
 # Use Finder/iTunes File Sharing to copy the model into the app's documents
 ```
 
----
+</details>
 
-## Tests
+### 2. Build & run
+
+```bash
+git clone https://github.com/thejohncaleb/resq.git
+cd resq
+
+cp config.example.json config.json
+# Edit config.json with your Hugging Face token
+
+flutter pub get
+flutter run --dart-define-from-file=config.json
+```
+
+### 3. Run tests
 
 ```bash
 flutter test
 ```
 
-6 pipeline tests cover the deterministic side of the app: emergency session serialization, medical profile encryption, and JSON roundtrip integrity. The model is never needed for tests — all money math and data handling is verified independently.
+> 6 tests verify the deterministic pipeline: emergency session serialization, medical profile encryption, JSON roundtrip integrity — no model required.
 
 ---
 
-## Real Scenarios
+## Privacy Commitment
 
-Every feature was designed from real situations around Minna and Niger State:
-
-- A student bitten by a snake walking from night class at Gidan Kwano
-- A student with a kitchen burn in an off-campus hostel, alone
-- A farmer in rural Niger State with no clinic within two hours
-- A mother whose child has a severe allergic reaction, no pharmacy nearby
-
----
-
-## Submission
-
-- **Hackathon:** Build with Gemma: AI for Africa — Minna 2026
-- **Track:** AI for Social Impact / Edge and Offline AI
-- **GitHub:** [github.com/thejohncaleb/resq](https://github.com/thejohncaleb/resq)
+| | |
+|---|---|
+| **No data leaves the device** | Every image, voice recording, and medical profile is processed on-device. The privacy seal is a live network counter, not a badge. |
+| **No runtime font fetches** | Inter is bundled as an asset — `google_fonts` was removed entirely to keep the "0 requests" seal literally true. |
+| **No real data in the repo** | `.gitignore` blocks `*.task`, `*.bin`, `*.litertlm`, `*.m4a`, `config.json`. |
+| **Auditable proof** | `HttpOverrides` + fetch patching intercept and count every outbound request across all platforms. |
 
 ---
 
-Built for the minutes that matter most.
+## Releases
+
+Pre-built APKs are available on the [**Releases**](https://github.com/thejohncaleb/resq/releases) page.
+
+The CI/CD pipeline (`.github/workflows/release.yml`) automatically builds release APKs on tagged pushes:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+---
+
+## License
+
+[Apache 2.0](LICENSE)
+
+---
+
+<p align="center">
+  <sub>Built for <a href="https://www.kaggle.com/code/thejohncaleb/resq-offline-emergency-intelligence">Build with Gemma: AI for Africa — FUTMinna 2026</a></sub>
+  <br/>
+  <sub><em>Gemma is a trademark of Google LLC.</em></sub>
+</p>
