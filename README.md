@@ -131,26 +131,45 @@ The AI is invisible by design. Users interact with structured emergency cards, n
 
 ### Download APK
 
-Get the latest release APK from the [Releases](https://github.com/thejohncaleb/resq/releases) page.
+Get the latest release APK from the [Releases](https://github.com/thejohncaleb/resq/releases) page. Each tagged version triggers a GitHub Actions build.
 
 ### Build from Source
 
 **Prerequisites:**
 - Flutter 3.44+ (Dart 3.12+)
-- Android device or emulator (API 26+, 4GB+ RAM)
-- About 3GB free storage for the model
-- A Hugging Face [read token](https://huggingface.co/settings/tokens) (free)
+- Android (API 26+) or iOS (16.0+) device
+- 4GB+ RAM, ~3GB free storage
+- A free [Hugging Face read token](https://huggingface.co/settings/tokens)
 
 ```bash
 git clone https://github.com/thejohncaleb/resq.git
 cd resq
 
-# Create your HuggingFace token config
 cp config.example.json config.json
-# Edit config.json and paste your HF token
+# Edit config.json with your HF token
 
 flutter pub get
 flutter run --dart-define-from-file=config.json
+```
+
+### GitHub Actions / CI
+
+For the release workflow to build with model support, add your HuggingFace token as a GitHub Secret:
+
+1. Go to your repo → Settings → Secrets and variables → Actions
+2. Add `HUGGINGFACE_TOKEN` with your HF read token
+3. Tagged pushes (`v1.0.0`) will automatically build signed APKs
+
+### Model Setup
+
+The Gemma 4 E2B model downloads automatically on first launch (~2.4GB). If automatic download fails:
+
+```bash
+# Android
+adb push gemma-4-E2B-it.litertlm /sdcard/Android/data/com.resq.resq/files/
+
+# iOS
+# Use Finder/iTunes File Sharing to copy the model into the app's documents
 ```
 
 ### Model Setup

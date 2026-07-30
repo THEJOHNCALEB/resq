@@ -30,7 +30,7 @@ jobs:
       - run: flutter test
 
       - name: Build APK (arm64)
-        run: flutter build apk --release
+        run: flutter build apk --release --dart-define=HUGGINGFACE_TOKEN=${{ secrets.HUGGINGFACE_TOKEN }}
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
