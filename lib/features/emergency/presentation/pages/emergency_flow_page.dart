@@ -188,34 +188,6 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
     final sessionId = await ref.read(emergencyRepositoryProvider).createSession(session);
     ref.read(currentEmergencyProvider.notifier).setSessionId(sessionId);
 
-    final gemma = ref.read(gemmaServiceProvider);
-
-    try {
-      if (!gemma.modelLoaded) {
-        await gemma.initialize();
-      }
-
-      final response = await gemma.analyzeEmergency(
-        userDescription: description,
-        imagePath: _capturedImagePath,
-        audioPath: _audioPath,
-      );
-
-      if (response.isNotEmpty) {
-        try {
-          emergencyNotifier.setAiAssessment(response);
-        } catch (e) {
-          debugPrint('[ResQ] Failed to parse emergency analysis: $e');
-          emergencyNotifier.setEmergencyType('Emergency');
-          emergencyNotifier.setAiAssessment(description);
-        }
-      }
-    } catch (e) {
-      debugPrint('[ResQ] Gemma analysis failed: $e');
-      emergencyNotifier.setEmergencyType('Emergency');
-      emergencyNotifier.setAiAssessment(description);
-    }
-
     setState(() => _isProcessing = false);
 
     if (mounted) {
