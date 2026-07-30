@@ -36,17 +36,25 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
     if (emergency == null) return;
 
     final gemma = ref.read(gemmaServiceProvider);
+    final start = DateTime.now();
 
     setState(() => _loadingStatus = 'Analysing your emergency...');
 
     try {
-      final guidance = await gemma.generateGuidance(
-        context: emergency.emergencyDescription,
-        imagePath: emergency.imagePaths.isNotEmpty ? emergency.imagePaths.first : null,
-        audioPath: emergency.audioPath.isNotEmpty ? emergency.audioPath : null,
-      );
+      final guidance = await gemma
+          .generateGuidance(
+            context: emergency.emergencyDescription,
+            imagePath: emergency.imagePaths.isNotEmpty ? emergency.imagePaths.first : null,
+            audioPath: emergency.audioPath.isNotEmpty ? emergency.audioPath : null,
+          )
+          .timeout(const Duration(seconds: 60), onTimeout: () => '');
 
-      if (guidance.isNotEmpty) {
+      final elapsed = DateTime.now().difference(start).inMilliseconds;
+      if (elapsed < 2000) {
+        await Future.delayed(Duration(milliseconds: 2000 - elapsed));
+      }
+
+      if (guidance.isNotEmpty && guidance.length > 20) {
         final data = json.decode(_extractJson(guidance));
         setState(() {
           _assessment = data['assessment'] ?? '';
@@ -67,6 +75,10 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
       debugPrint('[ResQ] Gemma failed: $e');
     }
 
+    setState(() {
+      _loading = false;
+      _loadingStatus = 'AI model not available';
+    });
     _setGeneric();
   }
 
