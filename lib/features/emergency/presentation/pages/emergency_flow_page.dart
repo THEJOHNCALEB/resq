@@ -178,6 +178,7 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
     final response = await gemma.analyzeEmergency(
       userDescription: description,
       imagePath: _capturedImagePath,
+      audioPath: _audioPath,
     );
 
     if (response.isNotEmpty) {

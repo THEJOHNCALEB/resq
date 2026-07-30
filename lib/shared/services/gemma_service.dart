@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:path_provider/path_provider.dart';
@@ -128,18 +129,33 @@ class GemmaService extends ChangeNotifier {
   Future<String> analyzeEmergency({
     required String userDescription,
     String? imagePath,
-    String? audioTranscription,
+    String? audioPath,
   }) async {
     final model = await FlutterGemma.getActiveModel(maxTokens: 2048);
-    final chat = await model.createChat(temperature: 0.7);
+    final chat = await model.createChat(temperature: 0.7, supportImage: true);
 
     final prompt = _buildEmergencyPrompt(
       description: userDescription,
-      imagePath: imagePath,
-      audioTranscription: audioTranscription,
+      hasImage: imagePath != null && File(imagePath).existsSync(),
+      hasAudio: audioPath != null && File(audioPath).existsSync(),
     );
 
-    await chat.addQueryChunk(Message.text(text: prompt, isUser: true));
+    Uint8List? imageBytes;
+    if (imagePath != null) {
+      final f = File(imagePath);
+      if (f.existsSync()) imageBytes = await f.readAsBytes();
+    }
+
+    if (imageBytes != null) {
+      await chat.addQueryChunk(Message.withImage(
+        text: prompt,
+        imageBytes: imageBytes,
+        isUser: true,
+      ));
+    } else {
+      await chat.addQueryChunk(Message.text(text: prompt, isUser: true));
+    }
+
     final response = await chat.generateChatResponse();
     return switch (response) {
       TextResponse(:final token) => token,
@@ -204,8 +220,8 @@ Write in clear, professional language. Be concise.
 
   String _buildEmergencyPrompt({
     required String description,
-    String? imagePath,
-    String? audioTranscription,
+    bool hasImage = false,
+    bool hasAudio = false,
   }) {
     final parts = <String>[
       'You are assisting someone in an emergency situation.',
@@ -215,12 +231,11 @@ Write in clear, professional language. Be concise.
       'User description: $description',
     ];
 
-    if (audioTranscription != null && audioTranscription.isNotEmpty) {
-      parts.add('Voice description: $audioTranscription');
+    if (hasAudio) {
+      parts.add('The user has also shared a voice recording of the incident.');
     }
-
-    if (imagePath != null && imagePath.isNotEmpty && File(imagePath).existsSync()) {
-      parts.add('The user has also shared an image of the situation.');
+    if (hasImage) {
+      parts.add('The user has also shared an image. Analyse it alongside the description.');
     }
 
     parts.add('Respond ONLY with valid JSON.');
