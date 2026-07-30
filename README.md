@@ -121,7 +121,7 @@ adb push gemma-4-E2B-it.litertlm /sdcard/Android/data/com.resq.resq/files/
 ### 2. Build & run
 
 ```bash
-git clone https://github.com/thejohncaleb/resq.git
+git clone https://github.com/THEJOHNCALEB/resq.git
 cd resq
 
 cp config.example.json config.json
@@ -154,7 +154,7 @@ flutter test
 
 ## Releases
 
-Pre-built APKs are available on the [**Releases**](https://github.com/thejohncaleb/resq/releases) page.
+Pre-built APKs are available on the [**Releases**](https://github.com/THEJOHNCALEB/resq/releases) page.
 
 The CI/CD pipeline (`.github/workflows/release.yml`) automatically builds release APKs on tagged pushes:
 
