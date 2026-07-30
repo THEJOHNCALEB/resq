@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../shared/providers/app_providers.dart';
@@ -44,6 +45,8 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen>
   }
 
   Future<void> _init() async {
+    await Permission.storage.request();
+
     final gemma = ref.read(gemmaServiceProvider);
     await gemma.initialize();
 
