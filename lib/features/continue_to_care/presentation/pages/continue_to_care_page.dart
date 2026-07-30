@@ -43,19 +43,20 @@ class _ContinueToCarePageState extends ConsumerState<ContinueToCarePage> {
     final facilitiesService = ref.read(emergencyFacilitiesServiceProvider);
     final nearest = facilitiesService.getNearestFacility();
 
+    Uri url;
     if (nearest != null && nearest.latitude != 0 && nearest.longitude != 0) {
-      final url = Uri.parse(
+      url = Uri.parse(
         'https://www.google.com/maps/search/?api=1&query='
-        '${Uri.encodeComponent(nearest.name)}&query_place_id='
-        '${nearest.latitude},${nearest.longitude}',
+        '${Uri.encodeComponent(nearest.name)}'
+        '&center=${nearest.latitude},${nearest.longitude}',
       );
-
-      try {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } catch (_) {
-        _showNoInternet();
-      }
     } else {
+      url = Uri.parse('https://www.google.com/maps/search/hospital+near+me');
+    }
+
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (_) {
       _showNoInternet();
     }
   }

@@ -116,35 +116,50 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
   Future<void> _startRecording() async {
     final micStatus = await Permission.microphone.request();
     if (!micStatus.isGranted) {
+      debugPrint('[ResQ] Microphone permission denied');
       setState(() => _errorMessage = 'Microphone permission required');
       return;
     }
 
     try {
-      if (await _audioRecorder.hasPermission()) {
-        final dir = await getTemporaryDirectory();
-        _audioPath = '${dir.path}/emergency_audio.m4a';
-
-        await _audioRecorder.start(
-          const RecordConfig(encoder: AudioEncoder.aacLc),
-          path: _audioPath!,
-        );
-
-        setState(() => _isRecording = true);
+      final hasPerm = await _audioRecorder.hasPermission();
+      if (!hasPerm) {
+        debugPrint('[ResQ] Audio recorder says no permission');
+        setState(() => _errorMessage = 'Microphone not available');
+        return;
       }
+
+      final dir = await getTemporaryDirectory();
+      _audioPath = '${dir.path}/emergency_audio.m4a';
+      debugPrint('[ResQ] Recording to: $_audioPath');
+
+      await _audioRecorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          sampleRate: 44100,
+          numChannels: 1,
+        ),
+        path: _audioPath!,
+      );
+
+      debugPrint('[ResQ] Recording started');
+      setState(() => _isRecording = true);
     } catch (e) {
+      debugPrint('[ResQ] Record start error: $e');
       setState(() => _errorMessage = 'Failed to start recording');
     }
   }
 
   Future<void> _stopRecording() async {
     try {
-      await _audioRecorder.stop();
+      final path = await _audioRecorder.stop();
+      debugPrint('[ResQ] Recording stopped. File: $path (exists: ${path != null ? File(path).existsSync() : false})');
       setState(() {
         _isRecording = false;
         _hasRecorded = true;
       });
     } catch (e) {
+      debugPrint('[ResQ] Record stop error: $e');
       setState(() => _errorMessage = 'Failed to stop recording');
     }
   }

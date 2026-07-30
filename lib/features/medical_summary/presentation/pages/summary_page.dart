@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../../shared/widgets/app_icon.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -327,11 +328,14 @@ class _SummarySection extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              content,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: AppColors.onSurfaceVariant,
-                height: 1.6,
+            MarkdownBody(
+              data: content,
+              styleSheet: MarkdownStyleSheet(
+                p: theme.textTheme.bodyLarge?.copyWith(color: AppColors.onSurfaceVariant, height: 1.6),
+                h1: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                h2: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                h3: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                strong: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
           ],
