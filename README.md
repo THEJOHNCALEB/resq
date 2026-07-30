@@ -138,27 +138,23 @@ flutter pub get
 flutter run
 ```
 
-### Gemma 4 Model Setup
+### Getting the AI Ready
 
-The app needs a Gemma model file for on-device AI inference. The model is approximately 500 MB.
+To provide the best emergency guidance, ResQ needs an AI model on your device. This happens once, automatically.
 
-**Option A — In-app download**
+**Let the app do it**
 
-When you open the app, a bottom sheet will offer to download the model. Tap **Download** and wait for it to complete. The model saves to your `Downloads/ResQ/` folder. The app will automatically try to install it to the correct system location. Restart the app after the download finishes.
+Open the app and a setup card will appear. Tap **Download** and wait a few minutes. The file saves to your `Downloads/ResQ/` folder and installs itself. Restart the app and you are ready.
 
-**Option B — Manual ADB push**
+**Manual setup (if automatic fails)**
 
-If the in-app download cannot place the file automatically on your device:
+Connect your phone to a computer via USB and run:
 
 ```bash
 adb push model.bin /data/local/tmp/llm/model.bin
 ```
 
-Then restart the app. The model will load on next launch.
-
-### Without a Model
-
-The app works immediately without the model using a keyword-based classification engine covering 14 emergency types — bleeding, burns, fractures, allergic reactions, seizures, snake bites, road accidents, and more. All features (camera, voice, guidance cards, medical summary, profile, history) work fully offline with no model required.
+Restart the app and the AI will load automatically.
 
 ---
 

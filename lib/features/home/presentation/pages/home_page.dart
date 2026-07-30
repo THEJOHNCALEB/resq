@@ -368,7 +368,7 @@ class _ModelSheetState extends State<_ModelSheet> {
           Center(child: Container(width: 36, height: 4,
             decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 24),
-          Text('Get Gemma 4', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text('Get the AI ready', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           Text('Download the model for AI-powered emergency guidance on this device.',
             style: theme.textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant)),
