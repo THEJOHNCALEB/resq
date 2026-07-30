@@ -5,7 +5,7 @@
 <h1 align="center">ResQ</h1>
 
 <p align="center">
-  <strong>Emergency intelligence that works anywhere. No internet. No cloud. No accounts.</strong>
+  <strong>Offline emergency intelligence companion</strong>
 </p>
 
 <p align="center">
