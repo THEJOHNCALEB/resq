@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ResQ (debug)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define-from-file=config.json"
+      ]
+    },
+    {
+      "name": "ResQ (release)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "args": [
+        "--dart-define-from-file=config.json"
+      ]
+    },
+    {
+      "name": "ResQ (profile)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile",
+      "args": [
+        "--dart-define-from-file=config.json"
+      ]
+    }
+  ]
+}

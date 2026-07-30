@@ -80,7 +80,7 @@ gemma_model/
 # IDE files
 .idea/
 *.iml
-.vscode/
+.vscode/settings.json
 
 # Debug keystore
 *.jks

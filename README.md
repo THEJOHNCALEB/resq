@@ -165,6 +165,11 @@ cp config.example.json config.json
 # Edit config.json with your HF token
 
 flutter pub get
+
+# Option 1: VS Code (recommended) — just press F5
+# Launch config already included in .vscode/launch.json
+
+# Option 2: Terminal
 flutter run --dart-define-from-file=config.json
 ```
 
