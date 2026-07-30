@@ -37,31 +37,16 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
 
     final gemma = ref.read(gemmaServiceProvider);
 
-    setState(() => _loadingStatus = 'Analysing emergency...');
-    final analysis = await gemma
-        .analyzeEmergency(
-          userDescription: emergency.emergencyDescription,
-          imagePath: emergency.imagePaths.isNotEmpty ? emergency.imagePaths.first : null,
-          audioPath: emergency.audioPath.isNotEmpty ? emergency.audioPath : null,
-        )
-        .timeout(const Duration(seconds: 45), onTimeout: () => '');
+    setState(() => _loadingStatus = 'Analysing your emergency...');
 
-    if (analysis.isNotEmpty) {
-      try {
-        json.decode(_extractJson(analysis));
-        ref.read(currentEmergencyProvider.notifier).setAiAssessment(analysis);
-      } catch (_) {
-        ref.read(currentEmergencyProvider.notifier).setAiAssessment(emergency.emergencyDescription);
-      }
-    }
+    try {
+      final guidance = await gemma.generateGuidance(
+        context: emergency.emergencyDescription,
+        imagePath: emergency.imagePaths.isNotEmpty ? emergency.imagePaths.first : null,
+        audioPath: emergency.audioPath.isNotEmpty ? emergency.audioPath : null,
+      );
 
-    setState(() => _loadingStatus = 'Generating guidance cards...');
-    final guidance = await gemma
-        .generateGuidance(context: emergency.emergencyDescription)
-        .timeout(const Duration(seconds: 45), onTimeout: () => '');
-
-    if (guidance.isNotEmpty) {
-      try {
+      if (guidance.isNotEmpty) {
         final data = json.decode(_extractJson(guidance));
         setState(() {
           _assessment = data['assessment'] ?? '';
@@ -76,13 +61,13 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
         n.setThingsToAvoid(_avoid);
         n.setMonitor(_monitor);
         n.setWhenToSeekCare(_seekCare);
-      } catch (e) {
-        debugPrint('[ResQ] Guidance parse: $e');
-        _setGeneric();
+        return;
       }
-    } else {
-      _setGeneric();
+    } catch (e) {
+      debugPrint('[ResQ] Gemma failed: $e');
     }
+
+    _setGeneric();
   }
 
   void _setGeneric() {
@@ -165,7 +150,7 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                 child: Row(children: [
                   IconButton(
-                    onPressed: () { if (context.canPop()) context.pop(); },
+                    onPressed: () { if (context.canPop()) context.pop(); else context.go(AppRouter.home); },
                     icon: const AppIcon(Icons.arrow_back_ios_new_rounded, size: 18),
                     color: AppColors.primary, padding: EdgeInsets.zero, constraints: const BoxConstraints(),
                   ),
@@ -173,12 +158,12 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
                   Text('Emergency Guidance', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                 ]),
               ),
-              const Expanded(
+              Expanded(
                 child: Center(
                   child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    SizedBox(width: 36, height: 36, child: CircularProgressIndicator(strokeWidth: 3)),
-                    SizedBox(height: 20),
-                    Text(_loadingStatus, style: TextStyle(color: AppColors.onSurfaceVariant)),
+                    const SizedBox(width: 36, height: 36, child: CircularProgressIndicator(strokeWidth: 3)),
+                    const SizedBox(height: 20),
+                    Text(_loadingStatus, style: const TextStyle(color: AppColors.onSurfaceVariant)),
                   ]),
                 ),
               ),
@@ -197,7 +182,7 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: Row(children: [
                 IconButton(
-                  onPressed: () { if (context.canPop()) context.pop(); },
+                  onPressed: () { if (context.canPop()) context.pop(); else context.go(AppRouter.home); },
                   icon: const AppIcon(Icons.arrow_back_ios_new_rounded, size: 18),
                   color: AppColors.primary, padding: EdgeInsets.zero, constraints: const BoxConstraints(),
                 ),
@@ -224,10 +209,7 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: () => context.go(AppRouter.continueToCare),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
+                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                 child: const Text('Continue to Care'),
               ),
             ),
@@ -236,14 +218,9 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: _generating ? null : _generateSummary,
-                icon: _generating
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const AppIcon(Icons.description_outlined, size: 18),
+                icon: _generating ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const AppIcon(Icons.description_outlined, size: 18),
                 label: Text(_generating ? 'Generating...' : 'Medical Summary'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(0, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
               ),
             ),
           ],
@@ -253,12 +230,8 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
   }
 
   Future<void> _openMaps() async {
-    final url = Uri.parse('https://www.google.com/maps/search/hospital+near+me');
-    try {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      debugPrint('[ResQ] Maps error: $e');
-    }
+    try { await launchUrl(Uri.parse('https://www.google.com/maps/search/hospital+near+me'), mode: LaunchMode.externalApplication); }
+    catch (e) { debugPrint('[ResQ] Maps error: $e'); }
   }
 
   Widget _buildMapsCard() {
@@ -267,32 +240,19 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
       child: Container(
         height: 140,
         decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/resq_overlay.png'),
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(Color(0xCC1E293B), BlendMode.srcOver),
-          ),
+          image: DecorationImage(image: AssetImage('assets/images/resq_overlay.png'), fit: BoxFit.cover, colorFilter: ColorFilter.mode(Color(0xCC1E293B), BlendMode.srcOver)),
         ),
         child: const Padding(
           padding: EdgeInsets.fromLTRB(20, 22, 20, 22),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Find Hospitals', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.3)),
-                    SizedBox(height: 6),
-                    Text('Click to find hospitals and clinics near you', style: TextStyle(color: Color(0xBBFFFFFF), fontSize: 13, height: 1.4)),
-                  ],
-                ),
-              ),
-              SizedBox(width: 12),
-              Icon(Icons.map_outlined, color: Colors.white70, size: 28),
-            ],
-          ),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text('Find Hospitals', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+              SizedBox(height: 6),
+              Text('Click to find hospitals and clinics near you', style: TextStyle(color: Color(0xBBFFFFFF), fontSize: 13)),
+            ])),
+            SizedBox(width: 12),
+            Icon(Icons.map_outlined, color: Colors.white70, size: 28),
+          ]),
         ),
       ),
     );
@@ -300,26 +260,13 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
 
   List<Widget> _buildCards() {
     final items = <_CardData>[];
+    if (_assessment.isNotEmpty) items.add(_CardData(title: cardTitles[0], icon: cardIcons[0], color: cardColors[0], content: _assessment));
+    if (_actions.isNotEmpty) items.add(_CardData(title: cardTitles[1], icon: cardIcons[1], color: cardColors[1], list: _actions));
+    if (_avoid.isNotEmpty) items.add(_CardData(title: cardTitles[2], icon: cardIcons[2], color: cardColors[2], list: _avoid));
+    if (_monitor.isNotEmpty) items.add(_CardData(title: cardTitles[3], icon: cardIcons[3], color: cardColors[3], list: _monitor));
+    if (_seekCare.isNotEmpty) items.add(_CardData(title: cardTitles[4], icon: cardIcons[4], color: cardColors[4], content: _seekCare));
 
-    if (_assessment.isNotEmpty) {
-      items.add(_CardData(title: cardTitles[0], icon: cardIcons[0], color: cardColors[0], content: _assessment));
-    }
-    if (_actions.isNotEmpty) {
-      items.add(_CardData(title: cardTitles[1], icon: cardIcons[1], color: cardColors[1], list: _actions));
-    }
-    if (_avoid.isNotEmpty) {
-      items.add(_CardData(title: cardTitles[2], icon: cardIcons[2], color: cardColors[2], list: _avoid));
-    }
-    if (_monitor.isNotEmpty) {
-      items.add(_CardData(title: cardTitles[3], icon: cardIcons[3], color: cardColors[3], list: _monitor));
-    }
-    if (_seekCare.isNotEmpty) {
-      items.add(_CardData(title: cardTitles[4], icon: cardIcons[4], color: cardColors[4], content: _seekCare));
-    }
-
-    final widgets = items.map((d) => _buildCard(d)).toList();
-    widgets.add(_buildMapsCard());
-    return widgets;
+    return [...items.map((d) => _buildCard(d)), _buildMapsCard()];
   }
 
   Widget _buildCard(_CardData data) {
@@ -334,33 +281,22 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
       decoration: BoxDecoration(color: color),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(data.title, style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.3)),
-                  const SizedBox(height: 10),
-                  if (isList)
-                    ...data.list!.map((item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Padding(padding: const EdgeInsets.only(top: 5), child: Container(width: 5, height: 5, decoration: BoxDecoration(color: iconColor, borderRadius: BorderRadius.circular(3)))),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(item, style: TextStyle(color: textColor.withAlpha(200), fontSize: 13, height: 1.4))),
-                      ]),
-                    ))
-                  else
-                    Text(data.content!, style: TextStyle(color: textColor.withAlpha(200), fontSize: 13, height: 1.5)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Padding(padding: const EdgeInsets.only(top: 2), child: Icon(data.icon, color: iconColor, size: 28)),
-          ],
-        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(data.title, style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 10),
+            if (isList)
+              ...data.list!.map((item) => Padding(padding: const EdgeInsets.only(bottom: 6), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Padding(padding: const EdgeInsets.only(top: 5), child: Container(width: 5, height: 5, decoration: BoxDecoration(color: iconColor, borderRadius: BorderRadius.circular(3)))),
+                const SizedBox(width: 8),
+                Expanded(child: Text(item, style: TextStyle(color: textColor.withAlpha(200), fontSize: 13, height: 1.4))),
+              ])))
+            else
+              Text(data.content!, style: TextStyle(color: textColor.withAlpha(200), fontSize: 13, height: 1.5)),
+          ])),
+          const SizedBox(width: 12),
+          Padding(padding: const EdgeInsets.only(top: 2), child: Icon(data.icon, color: iconColor, size: 28)),
+        ]),
       ),
     );
   }
@@ -372,6 +308,5 @@ class _CardData {
   final Color color;
   final String? content;
   final List<String>? list;
-
   _CardData({required this.title, required this.icon, required this.color, this.content, this.list});
 }

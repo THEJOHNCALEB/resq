@@ -24,7 +24,7 @@ final locationServiceProvider = ChangeNotifierProvider<LocationService>((ref) {
 });
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  return ProfileRepository(ref.watch(databaseServiceProvider));
+  return ProfileRepository();
 });
 
 final emergencyRepositoryProvider = Provider<EmergencyRepository>((ref) {
@@ -161,5 +161,5 @@ class EmergencyNotifier extends StateNotifier<EmergencySession?> {
 final sessionHistoryProvider =
     FutureProvider<List<EmergencySession>>((ref) async {
   final repo = ref.read(emergencyRepositoryProvider);
-  return repo.getCompletedSessions();
+  return repo.getAllSessions();
 });

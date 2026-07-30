@@ -9,16 +9,20 @@ enum GemmaState { checking, loading, ready, error }
 class GemmaService extends ChangeNotifier {
   GemmaState _state = GemmaState.checking;
   String _error = '';
+  dynamic _model;
 
   GemmaState get state => _state;
   String get error => _error;
-  bool get modelLoaded => _state == GemmaState.ready;
+  bool get modelLoaded => _state == GemmaState.ready && _model != null;
 
   static const _modelName = 'gemma-4-E2B-it.litertlm';
   static const _modelUrl =
       'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm';
 
   Future<void> initialize() async {
+    if (_state == GemmaState.ready) return;
+    if (_state == GemmaState.loading) return;
+
     _state = GemmaState.checking;
     notifyListeners();
 
@@ -34,14 +38,16 @@ class GemmaService extends ChangeNotifier {
       _state = GemmaState.loading;
       notifyListeners();
 
-      await FlutterGemma.getActiveModel(
+      _model = await FlutterGemma.getActiveModel(
         maxTokens: 2048,
         preferredBackend: PreferredBackend.cpu,
-      );
+      ).timeout(const Duration(seconds: 90), onTimeout: () {
+        throw Exception('Model loading timed out');
+      });
 
       _state = GemmaState.ready;
     } catch (e) {
-      debugPrint('[ResQ] GemmaService init error: $e');
+      debugPrint('[ResQ] GemmaService init: $e');
       _state = GemmaState.error;
       _error = e.toString();
     }
@@ -53,8 +59,9 @@ class GemmaService extends ChangeNotifier {
       await FlutterGemma.getActiveModel(maxTokens: 1);
       return true;
     } catch (e) {
-      debugPrint('[ResQ] hasActiveModel check: $e');
+      debugPrint('[ResQ] No active model: $e');
     }
+
     final paths = <String>[];
     final appDir = await getApplicationDocumentsDirectory();
     paths.add('${appDir.path}/$_modelName');
@@ -63,7 +70,9 @@ class GemmaService extends ChangeNotifier {
       try {
         final extDir = await getExternalStorageDirectory();
         if (extDir != null) paths.add('${extDir.path}/$_modelName');
-      } catch (e) { debugPrint('[ResQ] Silent error: $e'); }
+      } catch (e) {
+        debugPrint('[ResQ] No external storage: $e');
+      }
     }
 
     for (final p in paths) {
@@ -73,11 +82,15 @@ class GemmaService extends ChangeNotifier {
             modelType: ModelType.gemma4,
             fileType: ModelFileType.litertlm,
           ).fromFile(p).install();
+          debugPrint('[ResQ] Model installed from: $p');
           return true;
-        } catch (e) { debugPrint('[ResQ] Silent error: $e'); }
+        } catch (e) {
+          debugPrint('[ResQ] Install failed from $p: $e');
+        }
       }
     }
 
+    debugPrint('[ResQ] No model file found in any path');
     return false;
   }
 
@@ -124,51 +137,20 @@ class GemmaService extends ChangeNotifier {
 
       return null;
     } catch (e) {
-      debugPrint('[ResQ] Error: $e');
+      debugPrint('[ResQ] Download error: $e');
       return e.toString();
     }
   }
 
-  Future<String> analyzeEmergency({
-    required String userDescription,
+  Future<String> generateGuidance({
+    required String context,
     String? imagePath,
     String? audioPath,
   }) async {
-    final model = await FlutterGemma.getActiveModel(maxTokens: 2048);
-    final chat = await model.createChat(temperature: 0.7, supportImage: true);
-
-    final prompt = _buildEmergencyPrompt(
-      description: userDescription,
-      hasImage: imagePath != null && File(imagePath).existsSync(),
-      hasAudio: audioPath != null && File(audioPath).existsSync(),
-    );
-
-    Uint8List? imageBytes;
-    if (imagePath != null) {
-      final f = File(imagePath);
-      if (f.existsSync()) imageBytes = await f.readAsBytes();
+    if (_model == null) {
+      await initialize();
+      if (_model == null) return '';
     }
-
-    if (imageBytes != null) {
-      await chat.addQueryChunk(Message.withImage(
-        text: prompt,
-        imageBytes: imageBytes,
-        isUser: true,
-      ));
-    } else {
-      await chat.addQueryChunk(Message.text(text: prompt, isUser: true));
-    }
-
-    final response = await chat.generateChatResponse();
-    return switch (response) {
-      TextResponse(:final token) => token,
-      _ => '',
-    };
-  }
-
-  Future<String> generateGuidance({required String context}) async {
-    final model = await FlutterGemma.getActiveModel(maxTokens: 2048);
-    final chat = await model.createChat(temperature: 0.7);
 
     final prompt = '''
 You are an emergency response assistant. Based on the following emergency context, provide structured guidance. Format your response as JSON:
@@ -186,12 +168,34 @@ Emergency context: $context
 Respond ONLY with valid JSON.
 ''';
 
-    await chat.addQueryChunk(Message.text(text: prompt, isUser: true));
-    final response = await chat.generateChatResponse();
-    return switch (response) {
-      TextResponse(:final token) => token,
-      _ => '',
-    };
+    try {
+      final hasImage = imagePath != null && File(imagePath).existsSync();
+
+      final session = await _model.createSession(
+        temperature: 0.0,
+        topK: 1,
+        maxOutputTokens: 1024,
+        enableVisionModality: hasImage,
+      );
+
+      if (hasImage) {
+        final bytes = await File(imagePath!).readAsBytes();
+        await session.addQueryChunk(Message.withImage(
+          text: prompt,
+          imageBytes: bytes,
+          isUser: true,
+        ));
+      } else {
+        await session.addQueryChunk(Message.text(text: prompt, isUser: true));
+      }
+
+      final result = await session.getResponse();
+      debugPrint('[ResQ] Guidance generated (${result.length} chars)');
+      return result;
+    } catch (e) {
+      debugPrint('[ResQ] Guidance failed: $e');
+      return '';
+    }
   }
 
   Future<String> generateSummary({
@@ -200,8 +204,7 @@ Respond ONLY with valid JSON.
     String? imagePath,
     String? profileInfo,
   }) async {
-    final model = await FlutterGemma.getActiveModel(maxTokens: 2048);
-    final chat = await model.createChat(temperature: 0.7);
+    if (_model == null) return '';
 
     final prompt = '''
 Generate a professional medical summary for healthcare providers. Include date and time, description of emergency, observed symptoms, visible findings, actions already taken, medical profile, AI assessment, and recommended next steps.
@@ -213,35 +216,69 @@ Medical profile: ${profileInfo ?? 'None'}
 Write in clear, professional language. Be concise.
 ''';
 
-    await chat.addQueryChunk(Message.text(text: prompt, isUser: true));
-    final response = await chat.generateChatResponse();
-    return switch (response) {
-      TextResponse(:final token) => token,
-      _ => '',
-    };
+    try {
+      final session = await _model.createSession(
+        temperature: 0.0,
+        topK: 1,
+        maxOutputTokens: 1024,
+      );
+
+      await session.addQueryChunk(Message.text(text: prompt, isUser: true));
+      final result = await session.getResponse();
+      debugPrint('[ResQ] Summary generated (${result.length} chars)');
+      return result;
+    } catch (e) {
+      debugPrint('[ResQ] Summary failed: $e');
+      return '';
+    }
   }
 
-  String _buildEmergencyPrompt({
-    required String description,
-    bool hasImage = false,
-    bool hasAudio = false,
-  }) {
-    final parts = <String>[
-      'You are assisting someone in an emergency situation.',
-      'Determine the likely emergency context from the description below.',
-      'Respond with JSON: {"type": "emergency type", "severity": "low/medium/high/critical", "context": "brief analysis", "nextQuestion": "one most important follow-up question"}',
-      '',
-      'User description: $description',
-    ];
-
-    if (hasAudio) {
-      parts.add('The user has also shared a voice recording of the incident.');
-    }
-    if (hasImage) {
-      parts.add('The user has also shared an image. Analyse it alongside the description.');
+  Future<String> analyzeEmergency({
+    required String userDescription,
+    String? imagePath,
+    String? audioPath,
+  }) async {
+    if (_model == null) {
+      await initialize();
+      if (_model == null) return '';
     }
 
-    parts.add('Respond ONLY with valid JSON.');
-    return parts.join('\n');
+    final prompt = '''
+You are assisting someone in an emergency situation. Determine the likely emergency context from the description below.
+Respond with JSON: {"type": "emergency type", "severity": "low/medium/high/critical", "context": "brief analysis", "nextQuestion": "one most important follow-up question"}
+
+User description: $userDescription
+
+Respond ONLY with valid JSON.
+''';
+
+    try {
+      final hasImage = imagePath != null && File(imagePath).existsSync();
+
+      final session = await _model.createSession(
+        temperature: 0.0,
+        topK: 1,
+        maxOutputTokens: 512,
+        enableVisionModality: hasImage,
+      );
+
+      if (hasImage) {
+        final bytes = await File(imagePath!).readAsBytes();
+        await session.addQueryChunk(Message.withImage(
+          text: prompt,
+          imageBytes: bytes,
+          isUser: true,
+        ));
+      } else {
+        await session.addQueryChunk(Message.text(text: prompt, isUser: true));
+      }
+
+      final result = await session.getResponse();
+      debugPrint('[ResQ] Analysis generated (${result.length} chars)');
+      return result;
+    } catch (e) {
+      debugPrint('[ResQ] Analysis failed: $e');
+      return '{"type": "Emergency", "severity": "medium", "context": "Based on the description", "nextQuestion": "Can you provide more details?"}';
+    }
   }
 }

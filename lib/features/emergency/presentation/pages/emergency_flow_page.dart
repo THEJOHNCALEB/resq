@@ -191,7 +191,7 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
     setState(() => _isProcessing = false);
 
     if (mounted) {
-      context.go(AppRouter.guidance);
+      context.push(AppRouter.guidance);
     }
   }
 
