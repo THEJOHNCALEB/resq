@@ -13,6 +13,8 @@
   <img src="https://img.shields.io/badge/Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube Demo" />
   <img src="https://img.shields.io/badge/Track-AI%20for%20Social%20Impact-1B5E5C?style=for-the-badge" alt="Track" />
   <img src="https://img.shields.io/badge/Flutter-3.44+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
+  <img src="https://img.shields.io/badge/Platform-Android%20App%20(no%20web)-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android App" />
+  <img src="https://img.shields.io/badge/Offline-100%25-1B5E5C?style=for-the-badge" alt="100% Offline" />
   <img src="https://img.shields.io/badge/License-Apache%202.0-green?style=for-the-badge" alt="License" />
 </p>
 

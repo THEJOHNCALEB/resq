@@ -4,12 +4,13 @@
 **Track:** AI for Social Impact / Edge and Offline AI
 **Repository:** github.com/THEJOHNCALEB/resq
 **Model:** Gemma 4 E2B (litert-community/gemma-4-E2B-it-litert-lm)
+**Platform:** Android app (no website — on-device only)
 
 ---
 
 ## What is ResQ?
 
-ResQ is an on-device emergency intelligence companion that runs entirely on a phone. It uses Gemma 4 E2B to analyse emergency situations — combining camera images, voice recordings, and text — then provides calm, structured guidance in five colour-coded cards. Everything happens on the device. Nothing leaves the phone.
+ResQ is an Android app — not a website, not a cloud service. It runs entirely on your phone with zero internet required after the initial model download. It uses Gemma 4 E2B to analyse emergency situations — combining camera images, voice recordings, and text — then provides calm, structured guidance in five colour-coded cards. Everything happens on the device. Nothing leaves the phone.
 
 ---
 
