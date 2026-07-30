@@ -9,7 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://www.kaggle.com/code/thejohncaleb/resq-offline-emergency-intelligence"><img src="https://img.shields.io/badge/Build%20with%20Gemma-FUTMinna%202026-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Build with Gemma" /></a>
+  <img src="https://img.shields.io/badge/Build%20with%20Gemma-FUTMinna%202026-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Build with Gemma" />
+  <img src="https://img.shields.io/badge/Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube Demo" />
   <img src="https://img.shields.io/badge/Track-AI%20for%20Social%20Impact-1B5E5C?style=for-the-badge" alt="Track" />
   <img src="https://img.shields.io/badge/Flutter-3.44+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/License-Apache%202.0-green?style=for-the-badge" alt="License" />
@@ -25,7 +26,7 @@ ResQ is an **on-device emergency intelligence companion** built for the moments 
 
 ## The Problem
 
-It is 9 PM at FUTMinna. A student walks back from night class at Gidan Kwano campus. A snake bites his ankle. The university clinic is closed. The nearest hospital is 45 minutes away. His phone has no signal.
+It is 11:30 PM at FUTMinna. A student walks back from night class at Gidan Kwano campus. A snake bites his ankle. The university clinic is closed. The nearest hospital is 4 hours away. His phone has no signal.
 
 In rural Nigeria, this is everyday reality. The minutes between an incident and professional care are when permanent harm happens — tourniquets on snake bites, butter on burns, moving fracture victims incorrectly.
 
@@ -171,7 +172,7 @@ git push origin v1.0.0
 ---
 
 <p align="center">
-  <sub>Built for <a href="https://www.kaggle.com/code/thejohncaleb/resq-offline-emergency-intelligence">Build with Gemma: AI for Africa — FUTMinna 2026</a></sub>
+  <sub>Built for Build with Gemma: AI for Africa — FUTMinna 2026</sub>
   <br/>
   <sub><em>Gemma is a trademark of Google LLC.</em></sub>
 </p>
