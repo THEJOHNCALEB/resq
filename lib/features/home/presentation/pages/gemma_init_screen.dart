@@ -233,11 +233,11 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const AppIcon(Icons.storage_rounded, size: 12, color: AppColors.onSurfaceVariant),
+                            const Icon(Icons.storage_rounded, size: 12, color: AppColors.onSurfaceVariant),
                             const SizedBox(width: 6),
                             const Text('~2.4 GB', style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant)),
                             const SizedBox(width: 10),
-                            const AppIcon(Icons.lock_outline, size: 12, color: AppColors.safe),
+                            const Icon(Icons.lock_outline, size: 12, color: AppColors.safe),
                             const SizedBox(width: 4),
                             const Text('Apache 2.0', style: TextStyle(fontSize: 11, color: AppColors.safe)),
                           ],
