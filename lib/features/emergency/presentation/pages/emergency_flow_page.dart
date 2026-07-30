@@ -26,6 +26,7 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
   List<CameraDescription>? _cameras;
   bool _isCameraReady = false;
   bool _isRecording = false;
+  bool _hasRecorded = false;
   final AudioRecorder _audioRecorder = AudioRecorder();
   String? _capturedImagePath;
   String? _audioPath;
@@ -141,9 +142,7 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
       await _audioRecorder.stop();
       setState(() {
         _isRecording = false;
-        if (_descriptionController.text.trim().isEmpty) {
-          _descriptionController.text = '[Voice recording captured]';
-        }
+        _hasRecorded = true;
       });
     } catch (e) {
       setState(() => _errorMessage = 'Failed to stop recording');
@@ -399,8 +398,6 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
   }
 
   Widget _buildBottomControls(BuildContext context, ThemeData theme) {
-    if (_isProcessing) return const SizedBox.shrink();
-
     switch (_currentStep) {
       case 0:
         return _buildCameraControls(context, theme);
@@ -472,13 +469,21 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
           ),
           const SizedBox(height: 8),
           CalmButton(
-            label: _isRecording ? 'Stop Recording' : 'Start Recording',
-            icon: _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+            label: _isRecording
+                ? 'Stop Recording'
+                : _hasRecorded
+                    ? 'Recording saved'
+                    : 'Start Recording',
+            icon: _isRecording
+                ? Icons.stop_rounded
+                : _hasRecorded
+                    ? Icons.check_circle_outline
+                    : Icons.mic_rounded,
             isPrimary: false,
             isEmergency: _isRecording,
             isFullWidth: true,
             height: 48,
-            onPressed: _isRecording ? _stopRecording : _startRecording,
+            onPressed: _isRecording ? _stopRecording : (_hasRecorded ? null : _startRecording),
           ),
         ],
       ),
