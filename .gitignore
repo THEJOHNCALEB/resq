@@ -92,6 +92,7 @@ gemma_model/
 
 # Secrets - never commit tokens
 config.json
+*.backup
 
 # Font assets (bundled locally, not from google_fonts)
 assets/fonts/Inter*.ttf
