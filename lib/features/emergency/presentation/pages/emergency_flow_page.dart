@@ -166,7 +166,7 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
     }
 
     final gemma = ref.read(gemmaServiceProvider);
-    if (!gemma.isReady) {
+    if (!gemma.modelLoaded) {
       await gemma.initialize();
     }
 

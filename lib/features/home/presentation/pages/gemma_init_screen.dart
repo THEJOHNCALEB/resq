@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../shared/providers/app_providers.dart';
@@ -13,52 +12,78 @@ class GemmaInitScreen extends ConsumerStatefulWidget {
   ConsumerState<GemmaInitScreen> createState() => _GemmaInitScreenState();
 }
 
-class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen>
-    with SingleTickerProviderStateMixin {
-  bool _done = false;
-
-  late AnimationController _fadeController;
-  late Animation<double> _fadeIn;
-  late Animation<double> _slideUp;
+class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
+  String _status = 'Preparing...';
+  double _progress = 0;
+  bool _showRetry = false;
 
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _fadeIn = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
-    );
-    _slideUp = Tween<double>(begin: 20, end: 0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
-    );
-    _fadeController.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    super.dispose();
-  }
-
   Future<void> _init() async {
-    await Permission.storage.request();
-
     final gemma = ref.read(gemmaServiceProvider);
+
+    setState(() {
+      _status = 'Checking for AI model...';
+      _progress = 0.15;
+    });
+
     await gemma.initialize();
 
-    await Future.delayed(const Duration(milliseconds: 1500));
-
     if (!mounted) return;
-    setState(() => _done = true);
 
-    await Future.delayed(const Duration(milliseconds: 400));
+    if (gemma.modelLoaded) {
+      setState(() {
+        _status = 'AI ready';
+        _progress = 1.0;
+      });
+    } else {
+      setState(() {
+        _status = 'Downloading AI model...';
+        _progress = 0.2;
+      });
 
+      final error = await gemma.downloadModel(
+        onProgress: (p) {
+          if (mounted) {
+            setState(() {
+              _progress = 0.2 + p * 0.7;
+              _status = 'Downloading AI model... ${(p * 100).round()}%';
+            });
+          }
+        },
+      );
+
+      if (!mounted) return;
+
+      if (error == null) {
+        setState(() {
+          _status = 'Download complete. Loading...';
+          _progress = 0.95;
+        });
+        await gemma.initialize();
+        setState(() {
+          _status = 'AI ready';
+          _progress = 1.0;
+        });
+      } else {
+        setState(() {
+          _status = 'Could not download model';
+          _showRetry = true;
+          _progress = 1.0;
+        });
+      }
+    }
+
+    await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
-    context.go(AppRouter.home);
+
+    if (gemma.modelLoaded) {
+      context.go(AppRouter.home);
+    }
   }
 
   @override
@@ -68,18 +93,9 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: AnimatedBuilder(
-          animation: _fadeController,
-          builder: (context, child) {
-            return Opacity(
-              opacity: _fadeIn.value,
-              child: Transform.translate(
-                offset: Offset(0, _slideUp.value),
-                child: child,
-              ),
-            );
-          },
-          child: Center(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -102,18 +118,43 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen>
                   ),
                 ),
                 const SizedBox(height: 48),
-                if (!_done)
-                  SizedBox(
-                    width: 160,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: LinearProgressIndicator(
-                        minHeight: 3,
-                        backgroundColor: AppColors.primary.withAlpha(20),
-                        color: AppColors.primary,
-                      ),
+                SizedBox(
+                  width: 200,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: _progress,
+                      minHeight: 4,
+                      backgroundColor: AppColors.primary.withAlpha(20),
+                      color: AppColors.primary,
                     ),
                   ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _status,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                if (_showRetry) ...[
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: () {
+                      setState(() {
+                        _showRetry = false;
+                        _progress = 0;
+                      });
+                      _init();
+                    },
+                    child: const Text('Retry'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => context.go(AppRouter.home),
+                    child: const Text('Continue offline'),
+                  ),
+                ],
               ],
             ),
           ),
