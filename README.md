@@ -108,8 +108,6 @@ Guidance Generation → {"assessment", "actions", "avoid", "monitor", "seekCare"
 Medical Summary    → Professional healthcare narrative
 ```
 
-The same pipeline runs in the [Kaggle notebook](https://www.kaggle.com/code/thejohncaleb/resq-offline-emergency-intelligence) for verification.
-
 ### Tech Stack
 
 | Layer | Tech |
@@ -220,7 +218,6 @@ Every feature was designed from real situations around Minna and Niger State:
 
 - **Hackathon:** Build with Gemma: AI for Africa — Minna 2026
 - **Track:** AI for Social Impact / Edge and Offline AI
-- **Kaggle Notebook:** [ResQ — Offline Emergency Intelligence](https://www.kaggle.com/code/thejohncaleb/resq-offline-emergency-intelligence)
 - **GitHub:** [github.com/thejohncaleb/resq](https://github.com/thejohncaleb/resq)
 
 ---

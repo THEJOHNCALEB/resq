@@ -52,27 +52,24 @@ class GemmaService extends ChangeNotifier {
       return true;
     } catch (_) {}
 
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/$_modelName');
-    if (await file.exists()) {
+    final paths = <String>[];
+    final appDir = await getApplicationDocumentsDirectory();
+    paths.add('${appDir.path}/$_modelName');
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       try {
-        await FlutterGemma.installModel(
-          modelType: ModelType.gemma4,
-          fileType: ModelFileType.litertlm,
-        ).fromFile(file.path).install();
-        return true;
+        final extDir = await getExternalStorageDirectory();
+        if (extDir != null) paths.add('${extDir.path}/$_modelName');
       } catch (_) {}
     }
 
-    final extDir = await getExternalStorageDirectory();
-    if (extDir != null) {
-      final extFile = File('${extDir.path}/$_modelName');
-      if (await extFile.exists()) {
+    for (final p in paths) {
+      if (File(p).existsSync()) {
         try {
           await FlutterGemma.installModel(
             modelType: ModelType.gemma4,
             fileType: ModelFileType.litertlm,
-          ).fromFile(extFile.path).install();
+          ).fromFile(p).install();
           return true;
         } catch (_) {}
       }
@@ -85,8 +82,7 @@ class GemmaService extends ChangeNotifier {
     void Function(double progress)? onProgress,
   }) async {
     try {
-      final dir = await getExternalStorageDirectory() ??
-          await getApplicationDocumentsDirectory();
+      final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/$_modelName');
 
       if (await file.exists()) {

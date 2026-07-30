@@ -38,6 +38,14 @@ class _HomeTabState extends ConsumerState<HomeTab>
     super.dispose();
   }
 
+  void _showPrivacy() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _PrivacySheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -66,8 +74,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
                     Row(
                       children: [
                         Container(
-                          width: 5,
-                          height: 5,
+                          width: 5, height: 5,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: gemma.modelLoaded ? AppColors.safe : AppColors.warning,
@@ -76,45 +83,42 @@ class _HomeTabState extends ConsumerState<HomeTab>
                         const SizedBox(width: 5),
                         Text(
                           gemma.modelLoaded ? 'Gemma 4' : 'Offline',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.onSurfaceVariant,
-                          ),
+                          style: theme.textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant),
                         ),
                       ],
                     ),
                   ],
                 ),
                 const Spacer(),
-                StreamBuilder<int>(
-                  stream: Stream.value(PrivacyMonitor.instance.count),
-                  builder: (context, snapshot) {
-                    final count = snapshot.data ?? 0;
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: count == 0 ? AppColors.safe.withAlpha(15) : AppColors.error.withAlpha(15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.shield_rounded,
-                            size: 12,
-                            color: count == 0 ? AppColors.safe : AppColors.error,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            count == 0 ? '0' : '$count',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: count == 0 ? AppColors.safe : AppColors.error,
-                              fontWeight: FontWeight.w600,
+                GestureDetector(
+                  onTap: _showPrivacy,
+                  child: ListenableBuilder(
+                    listenable: PrivacyMonitor.instance,
+                    builder: (context, _) {
+                      final count = PrivacyMonitor.instance.count;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: count == 0 ? AppColors.safe.withAlpha(15) : AppColors.error.withAlpha(15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.shield_rounded, size: 12, color: count == 0 ? AppColors.safe : AppColors.error),
+                            const SizedBox(width: 4),
+                            Text(
+                              count == 0 ? '0' : '$count',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: count == 0 ? AppColors.safe : AppColors.error,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
@@ -126,17 +130,12 @@ class _HomeTabState extends ConsumerState<HomeTab>
             child: GestureDetector(
               onTap: widget.onStartEmergency,
               child: Container(
-                width: 160,
-                height: 160,
+                width: 160, height: 160,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.emergency,
                   boxShadow: [
-                    BoxShadow(
-                      color: AppColors.emergency.withAlpha(50),
-                      blurRadius: 28,
-                      spreadRadius: 6,
-                    ),
+                    BoxShadow(color: AppColors.emergency.withAlpha(50), blurRadius: 28, spreadRadius: 6),
                   ],
                 ),
                 child: Column(
@@ -147,11 +146,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
                     Text(
                       'Start\nEmergency',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        height: 1.2,
-                      ),
+                      style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700, height: 1.2),
                     ),
                   ],
                 ),
@@ -159,10 +154,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
             ),
           ),
           const SizedBox(height: 24),
-          Text(
-            'Tap for immediate guidance',
-            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
-          ),
+          Text('Tap for immediate guidance', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
           const SizedBox(height: 60),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -186,7 +178,6 @@ class _HomeTabState extends ConsumerState<HomeTab>
 class _FeatureChip extends StatelessWidget {
   final IconData icon;
   final String label;
-
   const _FeatureChip({required this.icon, required this.label});
 
   @override
@@ -194,10 +185,7 @@ class _FeatureChip extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withAlpha(10),
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(color: AppColors.primary.withAlpha(10), borderRadius: BorderRadius.circular(20)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -205,6 +193,91 @@ class _FeatureChip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(label, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
         ],
+      ),
+    );
+  }
+}
+
+class _PrivacySheet extends StatelessWidget {
+  const _PrivacySheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 36),
+      child: ListenableBuilder(
+        listenable: PrivacyMonitor.instance,
+        builder: (context, _) {
+          final count = PrivacyMonitor.instance.count;
+          final hosts = PrivacyMonitor.instance.hosts;
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Container(
+                    width: 52, height: 52,
+                    decoration: BoxDecoration(
+                      color: count == 0 ? AppColors.safe.withAlpha(15) : AppColors.error.withAlpha(15),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(count == 0 ? Icons.shield_rounded : Icons.warning_rounded, size: 28, color: count == 0 ? AppColors.safe : AppColors.error),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(count == 0 ? 'Privacy Verified' : '$count Request${count > 1 ? 's' : ''}', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 4),
+                        Text(count == 0 ? 'No data has ever left this device.' : 'Network activity detected', style: theme.textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: AppColors.primary.withAlpha(8), borderRadius: BorderRadius.circular(14)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('How this works', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600, color: AppColors.primary)),
+                    const SizedBox(height: 8),
+                    Text('Every HTTP request is intercepted and counted. After the initial model download, the counter should remain at zero. This is a live measurement, not a claim.', style: theme.textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant, height: 1.5)),
+                  ],
+                ),
+              ),
+              if (hosts.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text('Requested hosts', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                ...hosts.map((h) => Padding(padding: const EdgeInsets.only(bottom: 4), child: Text(h, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant, fontSize: 11)))),
+              ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.check_rounded, size: 18),
+                  label: const Text('Got it'),
+                  style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
