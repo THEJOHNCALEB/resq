@@ -1,15 +1,18 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:path_provider/path_provider.dart';
+import 'agent/resq_tools.dart';
+import 'agent/resq_agent.dart';
+import '../../features/medical_profile/data/models/medical_profile.dart';
+import '../../features/continue_to_care/data/models/emergency_facility.dart';
 
 enum GemmaState { checking, loading, ready, error }
 
 class GemmaService extends ChangeNotifier {
   GemmaState _state = GemmaState.checking;
   String _error = '';
-  dynamic _model;
+  InferenceModel? _model;
 
   GemmaState get state => _state;
   String get error => _error;
@@ -151,6 +154,7 @@ class GemmaService extends ChangeNotifier {
       await initialize();
       if (_model == null) return '';
     }
+    final model = _model!;
 
     final prompt = '''
 You are an emergency response assistant. Based on the following emergency context, provide structured guidance. Format your response as JSON:
@@ -171,7 +175,7 @@ Respond ONLY with valid JSON.
     try {
       final hasImage = imagePath != null && File(imagePath).existsSync();
 
-      final session = await _model.createSession(
+      final session = await model.createSession(
         temperature: 0.0,
         topK: 1,
         maxOutputTokens: 1024,
@@ -179,7 +183,7 @@ Respond ONLY with valid JSON.
       );
 
       if (hasImage) {
-        final bytes = await File(imagePath!).readAsBytes();
+        final bytes = await File(imagePath).readAsBytes();
         await session.addQueryChunk(Message.withImage(
           text: prompt,
           imageBytes: bytes,
@@ -198,6 +202,78 @@ Respond ONLY with valid JSON.
     }
   }
 
+  Future<InferenceChat> createEmergencyChat({
+    MedicalProfile? profile,
+    List<EmergencyFacility> facilities = const [],
+  }) async {
+    final m = _model;
+    if (m == null) throw Exception('Model not loaded');
+    return m.createChat(
+      modelType: ModelType.gemma4,
+      supportsFunctionCalls: true,
+      toolChoice: ToolChoice.auto,
+      maxOutputTokens: 1024,
+      tools: resqTools,
+      systemInstruction: 'You are ResQ, a calm, direct emergency response '
+          'assistant for people in urgent situations. You provide structured '
+          'guidance for first aid and emergency care. Use the tools to get '
+          'real information before answering — never guess medical details, '
+          'profile data, or facility names. Keep replies clear, actionable, '
+          'and step-by-step. Prioritise life-saving actions. Do not panic '
+          'the user. Ask clarifying questions if the emergency is unclear.',
+    );
+  }
+
+  Future<AgentTurn> agentGuidance({
+    required String emergencyDescription,
+    String? imagePath,
+    String? audioPath,
+    MedicalProfile? profile,
+    List<EmergencyFacility> facilities = const [],
+  }) async {
+    final chat = await createEmergencyChat(
+      profile: profile,
+      facilities: facilities,
+    );
+    final executor = ResQToolExecutor(
+      medicalProfile: profile,
+      facilities: facilities,
+    );
+    final agent = ResQAgent(chat, executor);
+
+    final parts = <String>[
+      'Emergency description: $emergencyDescription',
+    ];
+    if (audioPath != null && audioPath.isNotEmpty) {
+      parts.add('(The user also provided a voice recording of the emergency.)');
+    }
+
+    final prompt = '''
+${parts.join('\n')}
+
+Provide structured emergency guidance as JSON. Include only the card types
+that are relevant to this specific emergency:
+
+{
+  "cards": [
+    {
+      "title": "Card title (e.g. Assessment, Immediate Actions, Pain Management)",
+      "color": "hex colour code (e.g. #2563EB)",
+      "type": "text or list",
+      "content": "text string, or for list type an array of strings",
+      "icon": "Material icon name (e.g. psychology_outlined)"
+    }
+  ]
+}
+
+Choose card titles and content that are specific to this emergency. Do not
+include irrelevant cards. Use the tools to get the patient's medical profile
+and nearby facilities before writing the guidance.
+Respond ONLY with valid JSON.''';
+
+    return agent.ask(prompt);
+  }
+
   Future<String> generateSummary({
     required String context,
     required String guidance,
@@ -206,6 +282,7 @@ Respond ONLY with valid JSON.
   }) async {
     if (_model == null) return '';
 
+    final model = _model!;
     final prompt = '''
 Generate a professional medical summary for healthcare providers. Include date and time, description of emergency, observed symptoms, visible findings, actions already taken, medical profile, AI assessment, and recommended next steps.
 
@@ -217,7 +294,7 @@ Write in clear, professional language. Be concise.
 ''';
 
     try {
-      final session = await _model.createSession(
+      final session = await model.createSession(
         temperature: 0.0,
         topK: 1,
         maxOutputTokens: 1024,
@@ -242,6 +319,7 @@ Write in clear, professional language. Be concise.
       await initialize();
       if (_model == null) return '';
     }
+    final model = _model!;
 
     final prompt = '''
 You are assisting someone in an emergency situation. Determine the likely emergency context from the description below.
@@ -255,7 +333,7 @@ Respond ONLY with valid JSON.
     try {
       final hasImage = imagePath != null && File(imagePath).existsSync();
 
-      final session = await _model.createSession(
+      final session = await model.createSession(
         temperature: 0.0,
         topK: 1,
         maxOutputTokens: 512,
@@ -263,7 +341,7 @@ Respond ONLY with valid JSON.
       );
 
       if (hasImage) {
-        final bytes = await File(imagePath!).readAsBytes();
+        final bytes = await File(imagePath).readAsBytes();
         await session.addQueryChunk(Message.withImage(
           text: prompt,
           imageBytes: bytes,
@@ -278,7 +356,7 @@ Respond ONLY with valid JSON.
       return result;
     } catch (e) {
       debugPrint('[ResQ] Analysis failed: $e');
-      return '{"type": "Emergency", "severity": "medium", "context": "Based on the description", "nextQuestion": "Can you provide more details?"}';
+      return '';
     }
   }
 }

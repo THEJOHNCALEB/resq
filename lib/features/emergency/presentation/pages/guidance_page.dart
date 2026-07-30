@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../shared/widgets/app_icon.dart';
 import '../../../../shared/providers/app_providers.dart';
+import '../../../../shared/services/agent/resq_agent.dart';
 
 class GuidancePage extends ConsumerStatefulWidget {
   const GuidancePage({super.key});
@@ -16,11 +17,7 @@ class GuidancePage extends ConsumerStatefulWidget {
 }
 
 class _GuidancePageState extends ConsumerState<GuidancePage> {
-  String _assessment = '';
-  List<String> _actions = [];
-  List<String> _avoid = [];
-  List<String> _monitor = [];
-  String _seekCare = '';
+  List<_CardData> _cards = [];
   bool _generating = false;
   bool _loading = true;
   String _loadingStatus = 'Preparing guidance...';
@@ -36,61 +33,140 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
     if (emergency == null) return;
 
     final gemma = ref.read(gemmaServiceProvider);
-    final start = DateTime.now();
+    final profile = ref.read(profileProvider).valueOrNull;
+
+    final facilitiesService = ref.read(emergencyFacilitiesServiceProvider);
+    try {
+      await facilitiesService.loadFacilities();
+    } catch (_) {}
 
     setState(() => _loadingStatus = 'Analysing your emergency...');
 
     try {
-      final guidance = await gemma
-          .generateGuidance(
-            context: emergency.emergencyDescription,
-            imagePath: emergency.imagePaths.isNotEmpty ? emergency.imagePaths.first : null,
-            audioPath: emergency.audioPath.isNotEmpty ? emergency.audioPath : null,
+      final turn = await gemma
+          .agentGuidance(
+            emergencyDescription: emergency.emergencyDescription,
+            imagePath: emergency.imagePaths.isNotEmpty
+                ? emergency.imagePaths.first
+                : null,
+            audioPath: emergency.audioPath.isNotEmpty
+                ? emergency.audioPath
+                : null,
+            profile: profile,
+            facilities: facilitiesService.getSortedByDistance(),
           )
-          .timeout(const Duration(seconds: 60), onTimeout: () => '');
+          .timeout(const Duration(seconds: 90), onTimeout: () {
+        return AgentTurn('', []);
+      });
 
-      final elapsed = DateTime.now().difference(start).inMilliseconds;
-      if (elapsed < 2000) {
-        await Future.delayed(Duration(milliseconds: 2000 - elapsed));
-      }
+      if (turn.reply.isNotEmpty && turn.reply.length > 20) {
+        final dynamicCards = _parseDynamicCards(turn.reply);
+        if (dynamicCards.isNotEmpty) {
+          setState(() {
+            _cards = dynamicCards;
+            _loading = false;
+          });
+          _saveToEmergency(dynamicCards);
+          return;
+        }
 
-      if (guidance.isNotEmpty && guidance.length > 20) {
-        final data = json.decode(_extractJson(guidance));
-        setState(() {
-          _assessment = data['assessment'] ?? '';
-          _actions = List<String>.from(data['actions'] ?? []);
-          _avoid = List<String>.from(data['avoid'] ?? []);
-          _monitor = List<String>.from(data['monitor'] ?? []);
-          _seekCare = data['seekCare'] ?? '';
-          _loading = false;
-        });
-        final n = ref.read(currentEmergencyProvider.notifier);
-        n.setImmediateActions(_actions);
-        n.setThingsToAvoid(_avoid);
-        n.setMonitor(_monitor);
-        n.setWhenToSeekCare(_seekCare);
-        return;
+        final legacyCards = _parseLegacyCards(turn.reply);
+        if (legacyCards.isNotEmpty) {
+          setState(() {
+            _cards = legacyCards;
+            _loading = false;
+          });
+          _saveToEmergency(legacyCards);
+          return;
+        }
       }
     } catch (e) {
-      debugPrint('[ResQ] Gemma failed: $e');
+      debugPrint('[ResQ] Agent guidance failed: $e');
     }
 
     setState(() {
       _loading = false;
-      _loadingStatus = 'AI model not available';
+      _loadingStatus = 'The AI model could not generate guidance. Please ensure the model is downloaded and try again.';
+      _cards = [];
     });
-    _setGeneric();
   }
 
-  void _setGeneric() {
-    setState(() {
-      _assessment = 'Monitor the situation carefully.';
-      _actions = ['Stay calm', 'Ensure scene safety', 'Call for help', 'Provide basic first aid'];
-      _avoid = ['Do not move the person unless necessary', 'Do not leave them unattended'];
-      _monitor = ['Breathing rate and depth', 'Level of consciousness', 'Skin colour', 'Any changes'];
-      _seekCare = 'Seek immediate medical care if the condition worsens.';
-      _loading = false;
-    });
+  void _saveToEmergency(List<_CardData> cards) {
+    final n = ref.read(currentEmergencyProvider.notifier);
+    for (final card in cards) {
+      switch (card.title.toLowerCase()) {
+        case 'assessment':
+          if (card.content != null) n.setAiAssessment(card.content!);
+          break;
+        case 'immediate actions':
+          n.setImmediateActions(card.list ?? []);
+          break;
+        case 'things to avoid':
+          n.setThingsToAvoid(card.list ?? []);
+          break;
+        case 'monitor':
+          n.setMonitor(card.list ?? []);
+          break;
+        case 'when to seek care':
+          if (card.content != null) n.setWhenToSeekCare(card.content!);
+          break;
+      }
+    }
+  }
+
+  List<_CardData> _parseDynamicCards(String text) {
+    try {
+      final json = _extractJson(text);
+      final data = jsonDecode(json);
+      if (data is! Map || data['cards'] is! List) return [];
+      final list = data['cards'] as List;
+      return list.map((item) {
+        if (item is! Map) return null;
+        final type = item['type'] as String? ?? 'text';
+        final colorStr = item['color'] as String? ?? '#2563EB';
+        final iconName = item['icon'] as String? ?? 'circle_outlined';
+        return _CardData(
+          title: item['title'] as String? ?? '',
+          icon: _iconFromName(iconName),
+          color: _colorFromHex(colorStr),
+          content: type == 'text' ? (item['content'] as String?) : null,
+          list: type == 'list' && item['content'] is List
+              ? List<String>.from(item['content'])
+              : null,
+        );
+      }).whereType<_CardData>().toList();
+    } catch (e) {
+      debugPrint('[ResQ] Dynamic card parse: $e');
+      return [];
+    }
+  }
+
+  List<_CardData> _parseLegacyCards(String text) {
+    try {
+      final json = _extractJson(text);
+      final data = jsonDecode(json);
+      if (data is! Map) return [];
+      final cards = <_CardData>[];
+      if (data['assessment'] is String && (data['assessment'] as String).isNotEmpty) {
+        cards.add(_CardData(title: 'Assessment', icon: Icons.psychology_outlined, color: const Color(0xFF2563EB), content: data['assessment']));
+      }
+      if (data['actions'] is List) {
+        cards.add(_CardData(title: 'Immediate Actions', icon: Icons.check_circle_outline_rounded, color: const Color(0xFF0D9488), list: List<String>.from(data['actions'])));
+      }
+      if (data['avoid'] is List) {
+        cards.add(_CardData(title: 'Things To Avoid', icon: Icons.do_not_disturb_rounded, color: const Color(0xFFE04B3D), list: List<String>.from(data['avoid'])));
+      }
+      if (data['monitor'] is List) {
+        cards.add(_CardData(title: 'Monitor', icon: Icons.visibility_rounded, color: const Color(0xFFD97706), list: List<String>.from(data['monitor'])));
+      }
+      if (data['seekCare'] is String && (data['seekCare'] as String).isNotEmpty) {
+        cards.add(_CardData(title: 'When To Seek Care', icon: Icons.local_hospital_rounded, color: const Color(0xFF6D5BD0), content: data['seekCare']));
+      }
+      return cards;
+    } catch (e) {
+      debugPrint('[ResQ] Legacy card parse: $e');
+      return [];
+    }
   }
 
   Future<void> _generateSummary() async {
@@ -102,11 +178,21 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
     final gemma = ref.read(gemmaServiceProvider);
     final profile = ref.read(profileProvider).valueOrNull;
 
-    final g = 'Assessment: $_assessment\nActions: ${_actions.join(", ")}';
+    final actions = _cards
+        .where((c) => c.list != null)
+        .expand((c) => c.list!)
+        .join(', ');
+    final assessment = _cards
+        .where((c) => c.content != null && c.title.toLowerCase() == 'assessment')
+        .map((c) => c.content!)
+        .join('. ');
+    final g = 'Assessment: $assessment\nActions: $actions';
     final summary = await gemma.generateSummary(
       context: emergency.emergencyDescription,
       guidance: g,
-      profileInfo: profile != null ? '${profile.name}, ${profile.age}, ${profile.bloodGroup}' : null,
+      profileInfo: profile != null
+          ? '${profile.name}, ${profile.age}, ${profile.bloodGroup}'
+          : null,
     );
 
     if (summary.isNotEmpty) {
@@ -118,37 +204,41 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
     }
   }
 
-  String _extractJson(String text) {
-    text = text.trim();
-    final start = text.indexOf('{');
-    final end = text.lastIndexOf('}');
-    if (start != -1 && end != -1 && end > start) return text.substring(start, end + 1);
-    return text;
+  IconData _iconFromName(String name) {
+    switch (name) {
+      case 'psychology_outlined': return Icons.psychology_outlined;
+      case 'check_circle_outline_rounded': return Icons.check_circle_outline_rounded;
+      case 'do_not_disturb_rounded': return Icons.do_not_disturb_rounded;
+      case 'visibility_rounded': return Icons.visibility_rounded;
+      case 'local_hospital_rounded': return Icons.local_hospital_rounded;
+      case 'warning_amber_rounded': return Icons.warning_amber_rounded;
+      case 'medical_services_rounded': return Icons.medical_services_rounded;
+      case 'healing_rounded': return Icons.healing_rounded;
+      case 'favorite_rounded': return Icons.favorite_rounded;
+      case 'shield_rounded': return Icons.shield_rounded;
+      case 'info_rounded': return Icons.info_rounded;
+      case 'error_outline_rounded': return Icons.error_outline_rounded;
+      case 'help_outline_rounded': return Icons.help_outline_rounded;
+      case 'lightbulb_outline_rounded': return Icons.lightbulb_outline_rounded;
+      case 'handshake_rounded': return Icons.handshake_rounded;
+      case 'medication_rounded': return Icons.medication_rounded;
+      case 'sanitizer_rounded': return Icons.sanitizer_rounded;
+      case 'masks_rounded': return Icons.masks_rounded;
+      case 'water_drop_rounded': return Icons.water_drop_rounded;
+      case 'directions_run_rounded': return Icons.directions_run_rounded;
+      case 'air_rounded': return Icons.air_rounded;
+      case 'bloodtype_rounded': return Icons.bloodtype_rounded;
+      case 'fire_extinguisher_rounded': return Icons.fire_extinguisher_rounded;
+      case 'warning_rounded': return Icons.warning_rounded;
+      default: return Icons.circle_outlined;
+    }
   }
 
-  static const cardColors = [
-    Color(0xFF2563EB),
-    Color(0xFF0D9488),
-    Color(0xFFE04B3D),
-    Color(0xFFD97706),
-    Color(0xFF6D5BD0),
-  ];
-
-  static const cardIcons = [
-    Icons.psychology_outlined,
-    Icons.check_circle_outline_rounded,
-    Icons.do_not_disturb_rounded,
-    Icons.visibility_rounded,
-    Icons.local_hospital_rounded,
-  ];
-
-  static const cardTitles = [
-    'Assessment',
-    'Immediate Actions',
-    'Things To Avoid',
-    'Monitor',
-    'When To Seek Care',
-  ];
+  Color _colorFromHex(String hex) {
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    return Color(int.parse(hex, radix: 16));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -203,10 +293,37 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
               ]),
             ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(0, 8, 0, 100),
-                children: _buildCards(),
-              ),
+              child: _cards.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const AppIcon(Icons.psychology_outlined, size: 48, color: AppColors.onSurfaceVariant),
+                            const SizedBox(height: 16),
+                            Text(
+                              _loadingStatus,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 15, height: 1.5),
+                            ),
+                            const SizedBox(height: 24),
+                            OutlinedButton(
+                              onPressed: _load,
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 44),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(0, 8, 0, 100),
+                      children: _buildCards(),
+                    ),
             ),
           ],
         ),
@@ -241,6 +358,16 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
     );
   }
 
+  String _extractJson(String text) {
+    text = text.trim();
+    final start = text.indexOf('{');
+    final end = text.lastIndexOf('}');
+    if (start != -1 && end != -1 && end > start) {
+      return text.substring(start, end + 1);
+    }
+    return text;
+  }
+
   Future<void> _openMaps() async {
     try { await launchUrl(Uri.parse('https://www.google.com/maps/search/hospital+near+me'), mode: LaunchMode.externalApplication); }
     catch (e) { debugPrint('[ResQ] Maps error: $e'); }
@@ -252,7 +379,7 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
       child: Container(
         height: 140,
         decoration: const BoxDecoration(
-          image: DecorationImage(image: AssetImage('assets/images/resq_overlay.png'), fit: BoxFit.cover, colorFilter: ColorFilter.mode(Color(0xCC1E293B), BlendMode.srcOver)),
+          image: DecorationImage(image: AssetImage('assets/images/map.png'), fit: BoxFit.cover, colorFilter: ColorFilter.mode(Color(0xCC1E293B), BlendMode.srcOver)),
         ),
         child: const Padding(
           padding: EdgeInsets.fromLTRB(20, 22, 20, 22),
@@ -271,14 +398,7 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
   }
 
   List<Widget> _buildCards() {
-    final items = <_CardData>[];
-    if (_assessment.isNotEmpty) items.add(_CardData(title: cardTitles[0], icon: cardIcons[0], color: cardColors[0], content: _assessment));
-    if (_actions.isNotEmpty) items.add(_CardData(title: cardTitles[1], icon: cardIcons[1], color: cardColors[1], list: _actions));
-    if (_avoid.isNotEmpty) items.add(_CardData(title: cardTitles[2], icon: cardIcons[2], color: cardColors[2], list: _avoid));
-    if (_monitor.isNotEmpty) items.add(_CardData(title: cardTitles[3], icon: cardIcons[3], color: cardColors[3], list: _monitor));
-    if (_seekCare.isNotEmpty) items.add(_CardData(title: cardTitles[4], icon: cardIcons[4], color: cardColors[4], content: _seekCare));
-
-    return [...items.map((d) => _buildCard(d)), _buildMapsCard()];
+    return [..._cards.map((d) => _buildCard(d)), _buildMapsCard()];
   }
 
   Widget _buildCard(_CardData data) {
