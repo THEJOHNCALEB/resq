@@ -112,26 +112,55 @@ class GemmaService extends ChangeNotifier {
         return null;
       }
 
-      final client = HttpClient();
-      final request = await client.getUrl(Uri.parse(_modelUrl));
-      final response = await request.close();
-
-      final total = response.contentLength;
-      var downloaded = 0;
-      final tempFile = File('${file.path}.tmp');
-      final sink = tempFile.openWrite();
-
-      await for (final chunk in response) {
-        downloaded += chunk.length;
-        sink.add(chunk);
-        if (total > 0 && onProgress != null) {
-          onProgress(downloaded / total);
-        }
+      final tmpFile = File('${file.path}.tmp');
+      int existingBytes = 0;
+      if (tmpFile.existsSync()) {
+        existingBytes = tmpFile.lengthSync();
       }
-      await sink.close();
-      client.close();
 
-      await tempFile.rename(file.path);
+      final client = HttpClient();
+      try {
+        final request = await client.getUrl(Uri.parse(_modelUrl));
+        if (existingBytes > 0) {
+          request.headers.set('Range', 'bytes=$existingBytes-');
+        }
+        final response = await request.close();
+
+        int totalBytes;
+        RandomAccessFile raf;
+
+        if (response.statusCode == 206) {
+          final contentRange = response.headers.value('content-range');
+          if (contentRange != null && contentRange.contains('/')) {
+            totalBytes = int.parse(contentRange.split('/').last);
+          } else {
+            totalBytes = existingBytes + response.contentLength;
+          }
+          raf = tmpFile.openSync(mode: FileMode.append);
+        } else if (response.statusCode == 200) {
+          totalBytes = response.contentLength;
+          existingBytes = 0;
+          raf = tmpFile.openSync(mode: FileMode.write);
+        } else {
+          throw HttpException(
+              'Download failed with status ${response.statusCode}');
+        }
+
+        int downloaded = existingBytes;
+        await for (final chunk in response) {
+          raf.writeFromSync(chunk);
+          downloaded += chunk.length;
+          if (totalBytes > 0 && onProgress != null) {
+            onProgress(downloaded / totalBytes);
+          }
+        }
+        await raf.close();
+
+        if (file.existsSync()) file.deleteSync();
+        tmpFile.renameSync(file.path);
+      } finally {
+        client.close();
+      }
 
       await FlutterGemma.installModel(
         modelType: ModelType.gemma4,

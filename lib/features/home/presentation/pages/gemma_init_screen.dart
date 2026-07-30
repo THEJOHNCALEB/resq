@@ -20,6 +20,26 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
   bool _checking = true;
   String _error = '';
 
+  void _showErrorSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isDismissible: false,
+      enableDrag: false,
+      builder: (_) => _ErrorSheet(
+        error: _error,
+        onRetry: () {
+          Navigator.pop(context);
+          _download();
+        },
+        onSkip: () {
+          Navigator.pop(context);
+          context.go(AppRouter.home);
+        },
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -48,8 +68,27 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
 
     setState(() {
       _checking = false;
-      _failed = true;
+      _failed = false;
     });
+  }
+
+  void _afterDownloadFailed(String err) {
+    final friendly =
+        err.contains('network') ||
+            err.contains('Socket') ||
+            err.contains('connection')
+        ? 'Network error. Check your connection and try again.'
+        : err.contains('storage') ||
+              err.contains('space') ||
+              err.contains('disk')
+        ? 'Not enough storage. Free up space and try again.'
+        : 'Download failed. Check your connection and retry.';
+    setState(() {
+      _failed = true;
+      _downloading = false;
+      _error = friendly;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showErrorSheet());
   }
 
   Future<void> _download() async {
@@ -106,23 +145,10 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
         if (!mounted) return;
         context.go(AppRouter.home);
       } else {
-        setState(() {
-          _failed = true;
-          _downloading = false;
-          _error = 'Could not activate AI model. Restart the app.';
-        });
+        _afterDownloadFailed('Could not activate AI model. Restart the app.');
       }
     } else {
-      final friendly = error.contains('network') || error.contains('Socket') || error.contains('connection')
-          ? 'Network error. Check your connection and try again.'
-          : error.contains('storage') || error.contains('space') || error.contains('disk')
-              ? 'Not enough storage. Free up space and try again.'
-              : 'Download failed. Check your connection and retry.';
-      setState(() {
-        _failed = true;
-        _downloading = false;
-        _error = friendly;
-      });
+      _afterDownloadFailed(error);
     }
   }
 
@@ -178,7 +204,9 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
                     const SizedBox(height: 10),
                     Text(
                       'Checking offline intelligence...',
-                      style: theme.textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
                     ),
                   ],
                   if (!_checking && _downloading) ...[
@@ -194,58 +222,22 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
                     const SizedBox(height: 10),
                     Text(
                       _status,
-                      style: theme.textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant),
-                    ),
-                  ],
-                  if (!_checking && _failed && !_downloading) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: AppColors.error.withAlpha(10),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.error.withAlpha(30)),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            _error.isNotEmpty ? _error : 'Could not load AI model',
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.error,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: _download,
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                  child: const Text('Retry'),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextButton(
-                                  onPressed: () => context.go(AppRouter.home),
-                                  child: const Text('Skip'),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
                       ),
                     ),
                   ],
-                  if (!_checking && !_failed && !_downloading && _progress < 1) ...[
+                  if (!_checking &&
+                      !_failed &&
+                      !_downloading &&
+                      _progress < 1) ...[
                     Center(
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.cardBackground,
                           borderRadius: BorderRadius.circular(12),
@@ -254,13 +246,33 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.storage_rounded, size: 12, color: AppColors.onSurfaceVariant),
+                            const Icon(
+                              Icons.storage_rounded,
+                              size: 12,
+                              color: AppColors.onSurfaceVariant,
+                            ),
                             const SizedBox(width: 6),
-                            const Text('~2.4 GB', style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant)),
+                            const Text(
+                              '~2.4 GB',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
                             const SizedBox(width: 10),
-                            const Icon(Icons.lock_outline, size: 12, color: AppColors.safe),
+                            const Icon(
+                              Icons.lock_outline,
+                              size: 12,
+                              color: AppColors.safe,
+                            ),
                             const SizedBox(width: 4),
-                            const Text('Apache 2.0', style: TextStyle(fontSize: 11, color: AppColors.safe)),
+                            const Text(
+                              'Apache 2.0',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.safe,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -271,9 +283,41 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
                         onPressed: _download,
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                         child: const Text('Download AI Model'),
+                      ),
+                    ),
+                  ],
+                  if (_failed && !_downloading) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _download,
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: const Text('Retry download'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => context.go(AppRouter.home),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text('Continue'),
                       ),
                     ),
                   ],
@@ -282,6 +326,115 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ErrorSheet extends StatelessWidget {
+  final String error;
+  final VoidCallback onRetry;
+  final VoidCallback onSkip;
+
+  const _ErrorSheet({
+    required this.error,
+    required this.onRetry,
+    required this.onSkip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 36),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.warning.withAlpha(20),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.cloud_download_rounded,
+              size: 28,
+              color: AppColors.warning,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Download Interrupted',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            error,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your progress is saved — the download will\nresume from where it stopped.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.warning,
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Resume download'),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: onSkip,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text('Continue without AI'),
+            ),
+          ),
+        ],
       ),
     );
   }
