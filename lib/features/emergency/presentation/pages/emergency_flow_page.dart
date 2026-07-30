@@ -292,7 +292,7 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
               ),
               const SizedBox(height: 10),
               Text(
-                'Analysing your description and image\nto provide the best guidance.',
+                'Analysing your description and image\nto prepare guidance.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: AppColors.onSurfaceVariant,

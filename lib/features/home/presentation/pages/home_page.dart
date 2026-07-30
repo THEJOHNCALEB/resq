@@ -87,7 +87,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
               const SizedBox(width: 6),
               Text(
-                modelReady ? 'Gemma 3 Ready' : 'Basic Mode',
+                modelReady ? 'Gemma 4 Ready' : 'Basic Mode',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
