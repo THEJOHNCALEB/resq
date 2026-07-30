@@ -18,7 +18,6 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
   bool _downloading = false;
   bool _failed = false;
   String _error = '';
-  DateTime? _downloadStart;
 
   @override
   void initState() {
@@ -59,23 +58,31 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
       _downloading = true;
       _failed = false;
       _progress = 0;
-      _status = 'Connecting...';
-      _downloadStart = DateTime.now();
+      _status = 'Preparing your offline companion...';
     });
 
     final error = await gemma.downloadModel(
       onProgress: (p) {
         if (!mounted) return;
-        final elapsed = DateTime.now().difference(_downloadStart!).inSeconds;
-        final speed = elapsed > 0 && p > 0
-            ? '${((2.4 * p) / elapsed * 60).toStringAsFixed(0)} MB/min'
-            : '';
+
+        String msg;
+        if (p < 0.1) {
+          msg = 'Getting your offline experience ready...';
+        } else if (p < 0.4) {
+          msg = 'Downloading emergency intelligence...';
+        } else if (p < 0.7) {
+          msg = 'Almost halfway there...';
+        } else if (p < 0.9) {
+          msg = 'Finishing up... ${(p * 100).toStringAsFixed(0)}%';
+        } else if (p < 1.0) {
+          msg = 'Just a moment...';
+        } else {
+          msg = 'Download complete';
+        }
 
         setState(() {
           _progress = p;
-          _status = speed.isNotEmpty
-              ? '$speed  ·  ${(p * 100).toStringAsFixed(0)}%'
-              : '${(p * 100).toStringAsFixed(0)}%';
+          _status = msg;
         });
       },
     );
@@ -85,7 +92,7 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
     if (error == null) {
       setState(() {
         _progress = 1.0;
-        _status = 'Installing...';
+        _status = 'Setting everything up...';
       });
 
       await gemma.initialize();
@@ -93,7 +100,7 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
       if (!mounted) return;
 
       if (gemma.modelLoaded) {
-        setState(() => _status = 'Ready');
+        setState(() => _status = 'You are all set');
         await Future.delayed(const Duration(milliseconds: 600));
         if (!mounted) return;
         context.go(AppRouter.home);

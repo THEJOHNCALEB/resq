@@ -26,13 +26,15 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: IndexedStack(
-        index: _tab,
-        children: [
-          HomeTab(onStartEmergency: _startEmergency),
-          _buildHistoryTab(),
-          _buildProfileTab(),
-        ],
+      body: SafeArea(
+        child: IndexedStack(
+          index: _tab,
+          children: [
+            HomeTab(onStartEmergency: _startEmergency),
+            _buildHistoryTab(),
+            _buildProfileTab(),
+          ],
+        ),
       ),
       bottomNavigationBar: _buildNavBar(),
     );
