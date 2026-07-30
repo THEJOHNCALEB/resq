@@ -101,14 +101,19 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
         setState(() {
           _failed = true;
           _downloading = false;
-          _error = 'Model installed but failed to load.';
+          _error = 'Could not activate AI model. Restart the app.';
         });
       }
     } else {
+      final friendly = error.contains('network') || error.contains('Socket') || error.contains('connection')
+          ? 'Network error. Check your connection and try again.'
+          : error.contains('storage') || error.contains('space') || error.contains('disk')
+              ? 'Not enough storage. Free up space and try again.'
+              : 'Download failed. Check your connection and retry.';
       setState(() {
         _failed = true;
         _downloading = false;
-        _error = error;
+        _error = friendly;
       });
     }
   }
@@ -216,6 +221,29 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
                     ),
                   ],
                   if (!_failed && !_downloading && _progress < 1) ...[
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBackground,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const AppIcon(Icons.storage_rounded, size: 12, color: AppColors.onSurfaceVariant),
+                            const SizedBox(width: 6),
+                            const Text('~2.4 GB', style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant)),
+                            const SizedBox(width: 10),
+                            const AppIcon(Icons.lock_outline, size: 12, color: AppColors.safe),
+                            const SizedBox(width: 4),
+                            const Text('Apache 2.0', style: TextStyle(fontSize: 11, color: AppColors.safe)),
+                          ],
+                        ),
+                      ),
+                    ),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
@@ -225,13 +253,6 @@ class _GemmaInitScreenState extends ConsumerState<GemmaInitScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                         child: const Text('Download AI Model'),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      '~2.4 GB  ·  One-time download',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.onSurfaceVariant,
                       ),
                     ),
                   ],

@@ -139,7 +139,12 @@ class _EmergencyFlowPageState extends ConsumerState<EmergencyFlowPage>
   Future<void> _stopRecording() async {
     try {
       await _audioRecorder.stop();
-      setState(() => _isRecording = false);
+      setState(() {
+        _isRecording = false;
+        if (_descriptionController.text.trim().isEmpty) {
+          _descriptionController.text = '[Voice recording captured]';
+        }
+      });
     } catch (e) {
       setState(() => _errorMessage = 'Failed to stop recording');
     }
