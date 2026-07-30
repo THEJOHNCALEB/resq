@@ -1,0 +1,52 @@
+[
+  {
+    "name": "General Hospital Emergency Department",
+    "type": "Hospital",
+    "latitude": 0,
+    "longitude": 0,
+    "address": "Primary location — update with local data",
+    "phone": "+1234567890",
+    "hours": "24/7",
+    "services": ["Emergency", "Surgery", "ICU", "Trauma Center"]
+  },
+  {
+    "name": "Community Health Center",
+    "type": "Clinic",
+    "latitude": 0,
+    "longitude": 0,
+    "address": "Local clinic — update with local data",
+    "phone": "+1234567891",
+    "hours": "8:00 AM - 6:00 PM",
+    "services": ["Primary Care", "Minor Injuries", "Vaccinations"]
+  },
+  {
+    "name": "Rural Medical Post",
+    "type": "Medical Post",
+    "latitude": 0,
+    "longitude": 0,
+    "address": "Rural outpost — update with local data",
+    "phone": "+1234567892",
+    "hours": "9:00 AM - 4:00 PM",
+    "services": ["First Aid", "Basic Care", "Referrals"]
+  },
+  {
+    "name": "Regional Pharmacy",
+    "type": "Pharmacy",
+    "latitude": 0,
+    "longitude": 0,
+    "address": "Local pharmacy — update with local data",
+    "phone": "+1234567893",
+    "hours": "9:00 AM - 9:00 PM",
+    "services": ["Medication", "First Aid Supplies", "Consultation"]
+  },
+  {
+    "name": "Ambulance Service Station",
+    "type": "Ambulance",
+    "latitude": 0,
+    "longitude": 0,
+    "address": "Emergency services — update with local data",
+    "phone": "+1234567894",
+    "hours": "24/7",
+    "services": ["Emergency Transport", "Paramedics"]
+  }
+]

@@ -1,0 +1,52 @@
+name: resq
+description: "ResQ — Offline Emergency Intelligence"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_riverpod: ^2.6.1
+  go_router: ^15.1.2
+
+  sqflite: ^2.4.2
+  path: ^1.9.1
+  http: ^1.2.2
+
+  flutter_secure_storage: ^9.2.4
+
+  flutter_gemma: ^0.16.5
+
+  camera: ^0.11.1
+  permission_handler: ^12.0.0
+  image_picker: ^1.1.2
+  record: ^6.0.0
+
+  geolocator: ^13.0.2
+
+  share_plus: ^10.1.4
+  url_launcher: ^6.3.1
+  path_provider: ^2.1.5
+
+  intl: ^0.19.0
+  uuid: ^4.5.1
+
+  google_fonts: ^6.2.1
+  hugeicons: ^1.1.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.14
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/data/
