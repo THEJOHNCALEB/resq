@@ -121,6 +121,47 @@ The app works without the model using a keyword-based classification engine cove
 
 ---
 
+## Setup
+
+### Prerequisites
+
+- Flutter SDK 3.41 or later
+- Android device or emulator (API 21+)
+- About 1 GB free storage for the Gemma model
+
+### Clone and Run
+
+```bash
+git clone https://github.com/thejohncaleb/resq.git
+cd resq
+flutter pub get
+flutter run
+```
+
+### Gemma 4 Model Setup
+
+The app needs a Gemma model file for on-device AI inference. The model is approximately 500 MB.
+
+**Option A — In-app download**
+
+When you open the app, a bottom sheet will offer to download the model. Tap **Download** and wait for it to complete. The model saves to your `Downloads/ResQ/` folder. The app will automatically try to install it to the correct system location. Restart the app after the download finishes.
+
+**Option B — Manual ADB push**
+
+If the in-app download cannot place the file automatically on your device:
+
+```bash
+adb push model.bin /data/local/tmp/llm/model.bin
+```
+
+Then restart the app. The model will load on next launch.
+
+### Without a Model
+
+The app works immediately without the model using a keyword-based classification engine covering 14 emergency types — bleeding, burns, fractures, allergic reactions, seizures, snake bites, road accidents, and more. All features (camera, voice, guidance cards, medical summary, profile, history) work fully offline with no model required.
+
+---
+
 ## Why This Matters
 
 Every feature was designed from real scenarios around Minna:
