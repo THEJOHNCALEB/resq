@@ -178,7 +178,7 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
                   child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                     SizedBox(width: 36, height: 36, child: CircularProgressIndicator(strokeWidth: 3)),
                     SizedBox(height: 20),
-                    Text(_loadingStatus, style: const TextStyle(color: AppColors.onSurfaceVariant)),
+                    Text(_loadingStatus, style: TextStyle(color: AppColors.onSurfaceVariant)),
                   ]),
                 ),
               ),
