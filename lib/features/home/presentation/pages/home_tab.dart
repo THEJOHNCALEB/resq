@@ -26,7 +26,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
       vsync: this,
       duration: const Duration(seconds: 2),
     );
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.06).animate(
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
     _pulseController.repeat(reverse: true);
@@ -130,7 +130,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
             child: GestureDetector(
               onTap: widget.onStartEmergency,
               child: Container(
-                width: 160, height: 160,
+                width: 180, height: 180,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.emergency,
@@ -141,21 +141,19 @@ class _HomeTabState extends ConsumerState<HomeTab>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const AppIcon(Icons.warning_rounded, color: Colors.white, size: 42),
-                    const SizedBox(height: 4),
+                    const AppIcon(Icons.warning_rounded, color: Colors.white, size: 48),
+                    const SizedBox(height: 6),
                     Text(
                       'Start\nEmergency',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700, height: 1.2),
+                      style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700, height: 1.2, fontSize: 16),
                     ),
                   ],
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          Text('Tap for immediate guidance', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
-          const SizedBox(height: 60),
+          const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Row(
