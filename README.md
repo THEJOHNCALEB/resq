@@ -156,9 +156,9 @@ flutter test
 
 ---
 
-## Releases
+## App Download / Releases 
 
-You can download the App (APK for android) on the [**Releases**](https://github.com/THEJOHNCALEB/resq/releases) page.
+You can download the App (APK for android) on the [**releases**](https://github.com/THEJOHNCALEB/resq/releases) page.
 
 The CI/CD pipeline (`.github/workflows/release.yml`) automatically builds release APKs on tagged pushes:
 
