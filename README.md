@@ -5,17 +5,18 @@
 <h1 align="center">ResQ</h1>
 
 <p align="center">
-  <strong>Offline emergency intelligence companion</strong>
+  <strong>Emergency intelligence that works anywhere. No internet. No cloud. No accounts.</strong>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Build%20with%20Gemma-FUTMinna%202026-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Build with Gemma" />
-<a href="https://youtu.be/ZUY2emrWtsA" target="_blank">
-  <img src="https://img.shields.io/badge/Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube Demo" />
-</a>
+  <img src="https://img.shields.io/badge/Best%20Multimodal%20AI-Winner%20%E2%9A%84%EF%B8%8F-F5B739?style=for-the-badge" alt="Best Multimodal AI Winner" />
+  <a href="https://youtu.be/ZUY2emrWtsA" target="_blank">
+    <img src="https://img.shields.io/badge/Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube Demo" />
+  </a>
   <img src="https://img.shields.io/badge/Track-AI%20for%20Social%20Impact-1B5E5C?style=for-the-badge" alt="Track" />
   <img src="https://img.shields.io/badge/Flutter-3.44+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
-  <img src="https://img.shields.io/badge/Platform-Android%20App%20-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android App" />
+  <img src="https://img.shields.io/badge/Platform-Android%20App%20(no%20web)-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android App" />
   <img src="https://img.shields.io/badge/Offline-100%25-1B5E5C?style=for-the-badge" alt="100% Offline" />
   <img src="https://img.shields.io/badge/License-Apache%202.0-green?style=for-the-badge" alt="License" />
 </p>
@@ -23,6 +24,8 @@
 ---
 
 ResQ is an **on-device emergency intelligence companion** built for the moments between an incident and professional medical care — when there is no internet, no doctor, and no one to tell you what to do. It uses **Gemma 4 E2B — running entirely on your device** — to analyse emergency situations through camera, voice, and text, then provides calm, structured guidance in five scannable cards.
+
+**🏆 Winner — Best Multimodal AI** at the Build with Gemma: AI for Africa hackathon (FUTMinna 2026). [See the winning writeup](https://www.kaggle.com/competitions/build-with-gemma-ai-for-africa-hackathon-minna-2026/writeups/resq-an-offline-ai-emergency-companion).
 
 **Zero network requests after model download.** A live privacy counter proves it.
 
@@ -145,6 +148,35 @@ flutter test
 
 ---
 
+## Project Structure
+
+```
+lib/
+├── core/               # Constants, routing, theme, privacy monitor
+├── features/           # One folder per feature (emergency, home, profile, ...)
+│   ├── <feature>/
+│   │   ├── data/       # Models, repositories
+│   │   └── presentation/
+│   │       ├── pages/  # Screens
+│   │       └── widgets/
+├── shared/
+│   ├── providers/      # Riverpod providers
+│   ├── services/       # GemmaService, agent, facilities, location, database
+│   └── widgets/        # Reusable widgets
+assets/
+├── data/               # Offline facilities database
+├── fonts/              # Bundled Inter font
+└── images/
+```
+
+---
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first — it covers development setup, branch conventions, and the pull request process. For security issues, see [SECURITY.md](SECURITY.md).
+
+---
+
 ## Privacy Commitment
 
 | | |
@@ -156,9 +188,9 @@ flutter test
 
 ---
 
-## App Download / Releases 
+## Releases
 
-You can download the App (APK for android) on the [**releases**](https://github.com/THEJOHNCALEB/resq/releases) page.
+Pre-built APKs are available on the [**Releases**](https://github.com/THEJOHNCALEB/resq/releases) page.
 
 The CI/CD pipeline (`.github/workflows/release.yml`) automatically builds release APKs on tagged pushes:
 
@@ -172,6 +204,14 @@ git push origin v1.0.0
 ## License
 
 [Apache 2.0](LICENSE)
+
+---
+
+## Acknowledgements
+
+- **Google Gemma** — the on-device model powering all AI features ([Gemma is a trademark of Google LLC](https://ai.google.dev/gemma))
+- **flutter_gemma** — the Flutter plugin for on-device Gemma inference
+- **Build with Gemma: AI for Africa (FUTMinna 2026)** — the hackathon where ResQ won **Best Multimodal AI**
 
 ---
 

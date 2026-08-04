@@ -260,8 +260,7 @@ class SummaryPage extends ConsumerWidget {
             icon: Icons.send_rounded,
             isPrimary: true,
             isFullWidth: true,
-            onPressed: () async {
-              await ref.read(currentEmergencyProvider.notifier).completeSession();
+            onPressed: () {
               if (context.mounted) {
                 context.go(AppRouter.continueToCare);
               }

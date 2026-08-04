@@ -440,7 +440,12 @@ class _ContinueToCarePageState extends ConsumerState<ContinueToCarePage> {
         icon: Icons.home_rounded,
         isPrimary: true,
         isFullWidth: true,
-        onPressed: () => context.go(AppRouter.home),
+        onPressed: () async {
+          await ref.read(currentEmergencyProvider.notifier).completeSession();
+          if (context.mounted) {
+            context.go(AppRouter.home);
+          }
+        },
       ),
     );
   }

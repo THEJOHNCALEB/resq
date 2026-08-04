@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_icon.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/providers/app_providers.dart';
+import '../../../../shared/services/gemma_service.dart';
 import '../../../../core/privacy_monitor.dart';
+import '../../../../core/routing/app_router.dart';
 
 class HomeTab extends ConsumerStatefulWidget {
   final VoidCallback onStartEmergency;
@@ -44,6 +47,81 @@ class _HomeTabState extends ConsumerState<HomeTab>
     );
   }
 
+  Widget _buildModelBanner(ThemeData theme, GemmaService gemma) {
+    final isDownloading = gemma.state == GemmaState.loading;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withAlpha(12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.warning.withAlpha(45)),
+      ),
+      child: Row(
+        children: [
+          const AppIcon(
+            Icons.cloud_download_rounded,
+            size: 22,
+            color: AppColors.warning,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AI model not downloaded',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.warning,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isDownloading
+                      ? 'Downloading... check back shortly.'
+                      : 'Emergency guidance needs the on-device Gemma model.',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (!isDownloading)
+            FilledButton(
+              onPressed: () => context.go(AppRouter.init),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.warning,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                minimumSize: const Size(0, 38),
+                textStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text('Download'),
+            )
+          else
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.warning,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -53,6 +131,10 @@ class _HomeTabState extends ConsumerState<HomeTab>
       child: Column(
         children: [
           const SizedBox(height: 16),
+          if (!gemma.modelLoaded) ...[
+            _buildModelBanner(theme, gemma),
+            const SizedBox(height: 12),
+          ],
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Row(
