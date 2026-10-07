@@ -286,19 +286,31 @@ that are relevant to this specific emergency:
 {
   "cards": [
     {
-      "title": "Card title (e.g. Assessment, Immediate Actions, Pain Management)",
+      "title": "Card title (e.g. Assessment, Immediate Actions, Things To Avoid)",
       "color": "hex colour code (e.g. #2563EB)",
       "type": "text or list",
-      "content": "text string, or for list type an array of strings",
+      "content": "for text: one short sentence. for list: array of items",
       "icon": "Material icon name (e.g. psychology_outlined)"
     }
   ]
 }
 
-Choose card titles and content that are specific to this emergency. Do not
-include irrelevant cards. Use the tools to get the patient's medical profile
-and nearby facilities before writing the guidance.
-Respond ONLY with valid JSON.''';
+For list items, each item must be either a short string OR an object with
+"text" and an optional "icon" (Material icon name), e.g.
+{"text": "Immobilize arm", "icon": "splint"}.
+
+CRITICAL: The person reading this may be panicking. Follow these rules:
+- Every list item must be 2-4 words max. Short, bold, command-like.
+  Good: "Immobilize arm", "No tourniquet", "Loosen clothing".
+  Bad: "Gently immobilize the affected arm using a splint or sling".
+- Maximum 6 items per card.
+- "Things To Avoid" items must start with "No" or "Don't" (e.g. "No sucking venom").
+- "Immediate Actions" items must start with a verb (e.g. "Call 112", "Stay calm").
+- Text cards (Assessment, When To Seek Care): maximum 2 short sentences.
+- Only include cards essential for this specific emergency. Never more than 5.
+
+Use the tools to get the patient's medical profile and nearby facilities
+before writing the guidance. Respond ONLY with valid JSON.''';
 
     return agent.ask(prompt);
   }

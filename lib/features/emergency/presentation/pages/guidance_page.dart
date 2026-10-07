@@ -94,18 +94,19 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
   void _saveToEmergency(List<_CardData> cards) {
     final n = ref.read(currentEmergencyProvider.notifier);
     for (final card in cards) {
+      final itemTexts = card.items?.map((i) => i.text).toList() ?? [];
       switch (card.title.toLowerCase()) {
         case 'assessment':
           if (card.content != null) n.setAiAssessment(card.content!);
           break;
         case 'immediate actions':
-          n.setImmediateActions(card.list ?? []);
+          n.setImmediateActions(itemTexts);
           break;
         case 'things to avoid':
-          n.setThingsToAvoid(card.list ?? []);
+          n.setThingsToAvoid(itemTexts);
           break;
         case 'monitor':
-          n.setMonitor(card.list ?? []);
+          n.setMonitor(itemTexts);
           break;
         case 'when to seek care':
           if (card.content != null) n.setWhenToSeekCare(card.content!);
@@ -125,20 +126,35 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
         final type = item['type'] as String? ?? 'text';
         final colorStr = item['color'] as String? ?? '#2563EB';
         final iconName = item['icon'] as String? ?? 'circle_outlined';
+        final items = type == 'list' ? _parseCardItems(item['content']) : null;
         return _CardData(
           title: item['title'] as String? ?? '',
           icon: _iconFromName(iconName),
           color: _colorFromHex(colorStr),
           content: type == 'text' ? (item['content'] as String?) : null,
-          list: type == 'list' && item['content'] is List
-              ? List<String>.from(item['content'])
-              : null,
+          items: items,
         );
       }).whereType<_CardData>().toList();
     } catch (e) {
       debugPrint('[ResQ] Dynamic card parse: $e');
       return [];
     }
+  }
+
+  List<_CardItem> _parseCardItems(dynamic content) {
+    if (content is! List) return [];
+    final out = <_CardItem>[];
+    for (final raw in content) {
+      if (raw is String) {
+        out.add(_CardItem(raw));
+      } else if (raw is Map) {
+        final text = raw['text'] as String? ?? raw['content'] as String? ?? '';
+        if (text.isNotEmpty) {
+          out.add(_CardItem(text, _iconFromName('${raw['icon'] ?? ''}')));
+        }
+      }
+    }
+    return out;
   }
 
   List<_CardData> _parseLegacyCards(String text) {
@@ -151,13 +167,13 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
         cards.add(_CardData(title: 'Assessment', icon: Icons.psychology_outlined, color: const Color(0xFF2563EB), content: data['assessment']));
       }
       if (data['actions'] is List) {
-        cards.add(_CardData(title: 'Immediate Actions', icon: Icons.check_circle_outline_rounded, color: const Color(0xFF0D9488), list: List<String>.from(data['actions'])));
+        cards.add(_CardData(title: 'Immediate Actions', icon: Icons.check_circle_outline_rounded, color: const Color(0xFF0D9488), items: _parseCardItems(data['actions'])));
       }
       if (data['avoid'] is List) {
-        cards.add(_CardData(title: 'Things To Avoid', icon: Icons.do_not_disturb_rounded, color: const Color(0xFFE04B3D), list: List<String>.from(data['avoid'])));
+        cards.add(_CardData(title: 'Things To Avoid', icon: Icons.do_not_disturb_rounded, color: const Color(0xFFE04B3D), items: _parseCardItems(data['avoid'])));
       }
       if (data['monitor'] is List) {
-        cards.add(_CardData(title: 'Monitor', icon: Icons.visibility_rounded, color: const Color(0xFFD97706), list: List<String>.from(data['monitor'])));
+        cards.add(_CardData(title: 'Monitor', icon: Icons.visibility_rounded, color: const Color(0xFFD97706), items: _parseCardItems(data['monitor'])));
       }
       if (data['seekCare'] is String && (data['seekCare'] as String).isNotEmpty) {
         cards.add(_CardData(title: 'When To Seek Care', icon: Icons.local_hospital_rounded, color: const Color(0xFF6D5BD0), content: data['seekCare']));
@@ -179,8 +195,8 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
     final profile = ref.read(profileProvider).valueOrNull;
 
     final actions = _cards
-        .where((c) => c.list != null)
-        .expand((c) => c.list!)
+        .where((c) => c.items != null)
+        .expand((c) => c.items!.map((i) => i.text))
         .join(', ');
     final assessment = _cards
         .where((c) => c.content != null && c.title.toLowerCase() == 'assessment')
@@ -230,6 +246,39 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
       case 'bloodtype_rounded': return Icons.bloodtype_rounded;
       case 'fire_extinguisher_rounded': return Icons.fire_extinguisher_rounded;
       case 'warning_rounded': return Icons.warning_rounded;
+      case 'check_rounded': return Icons.check_rounded;
+      case 'block_rounded': return Icons.block_rounded;
+      case 'do_not_touch_rounded': return Icons.do_not_touch_rounded;
+      case 'phone_rounded': return Icons.phone_rounded;
+      case 'call_rounded': return Icons.call_rounded;
+      case 'sos_rounded': return Icons.sos_rounded;
+      case 'person_rounded': return Icons.person_rounded;
+      case 'self_improvement_rounded': return Icons.self_improvement_rounded;
+      case 'spa_rounded': return Icons.spa_rounded;
+      case 'local_drink_rounded': return Icons.local_drink_rounded;
+      case 'no_food_rounded': return Icons.no_food_rounded;
+      case 'no_drinks_rounded': return Icons.no_drinks_rounded;
+      case 'snowing': return Icons.snowing;
+      case 'ac_unit_rounded': return Icons.ac_unit_rounded;
+      case 'hotel_rounded': return Icons.hotel_rounded;
+      case 'bedtime_rounded': return Icons.bedtime_rounded;
+      case 'favorite_border_rounded': return Icons.favorite_border_rounded;
+      case 'accessible_rounded': return Icons.accessible_rounded;
+      case 'elderly_rounded': return Icons.elderly_rounded;
+      case 'emergency_rounded': return Icons.emergency_rounded;
+      case 'content_cut_rounded': return Icons.content_cut_rounded;
+      case 'icecream_rounded': return Icons.icecream_rounded;
+      case 'bloodtype_outlined': return Icons.bloodtype_outlined;
+      case 'monitor_heart_rounded': return Icons.monitor_heart_rounded;
+      case 'monitor_weight_rounded': return Icons.monitor_weight_rounded;
+      case 'monitor_rounded': return Icons.monitor_rounded;
+      case 'schedule_rounded': return Icons.schedule_rounded;
+      case 'timer_rounded': return Icons.timer_rounded;
+      case 'speed_rounded': return Icons.speed_rounded;
+      case 'inventory_2_rounded': return Icons.inventory_2_rounded;
+      case 'cleaning_services_rounded': return Icons.cleaning_services_rounded;
+      case 'soap_rounded': return Icons.soap_rounded;
+      case 'water_drop_outlined': return Icons.water_drop_outlined;
       default: return Icons.circle_outlined;
     }
   }
@@ -405,33 +454,101 @@ class _GuidancePageState extends ConsumerState<GuidancePage> {
     final color = data.color;
     final luminance = color.computeLuminance();
     final textColor = luminance > 0.5 ? Colors.black87 : Colors.white;
-    final iconColor = luminance > 0.5 ? color.withAlpha(160) : Colors.white60;
-    final isList = data.list != null;
+    final iconColor = luminance > 0.5 ? color.withAlpha(160) : Colors.white70;
+    final isAvoid = data.title.toLowerCase().contains('avoid') ||
+        data.title.toLowerCase().contains("don't");
+    final items = data.items;
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 110),
       decoration: BoxDecoration(color: color),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(data.title, style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 10),
-            if (isList)
-              ...data.list!.map((item) => Padding(padding: const EdgeInsets.only(bottom: 6), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Padding(padding: const EdgeInsets.only(top: 5), child: Container(width: 5, height: 5, decoration: BoxDecoration(color: iconColor, borderRadius: BorderRadius.circular(3)))),
-                const SizedBox(width: 8),
-                Expanded(child: Text(item, style: TextStyle(color: textColor.withAlpha(200), fontSize: 13, height: 1.4))),
-              ])))
-            else
-              Text(data.content!, style: TextStyle(color: textColor.withAlpha(200), fontSize: 13, height: 1.5)),
-          ])),
-          const SizedBox(width: 12),
-          Padding(padding: const EdgeInsets.only(top: 2), child: Icon(data.icon, color: iconColor, size: 28)),
-        ]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(
+                child: Text(
+                  data.title,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Icon(data.icon, color: iconColor, size: 28),
+            ]),
+            const SizedBox(height: 14),
+            if (items != null && items.isNotEmpty)
+              ...items.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: textColor.withAlpha(18),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          item.icon ??
+                              (isAvoid
+                                  ? Icons.do_not_disturb_on_rounded
+                                  : Icons.check_rounded),
+                          size: 20,
+                          color: item.icon != null
+                              ? textColor
+                              : (isAvoid
+                                  ? const Color(0xFFFFDAD6)
+                                  : const Color(0xFFBFF0C3)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 5),
+                          child: Text(
+                            item.text,
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              height: 1.25,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (data.content != null && data.content!.isNotEmpty)
+              Text(
+                data.content!,
+                style: TextStyle(
+                  color: textColor.withAlpha(230),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  height: 1.45,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _CardItem {
+  final String text;
+  final IconData? icon;
+  _CardItem(this.text, [this.icon]);
 }
 
 class _CardData {
@@ -439,6 +556,6 @@ class _CardData {
   final IconData icon;
   final Color color;
   final String? content;
-  final List<String>? list;
-  _CardData({required this.title, required this.icon, required this.color, this.content, this.list});
+  final List<_CardItem>? items;
+  _CardData({required this.title, required this.icon, required this.color, this.content, this.items});
 }
